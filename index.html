@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Mobilità — from 0 to hero</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1a2e">
+
+<!-- iOS home screen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mobilità">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <header class="app-header">
+    <span class="app-header__title">Mobilità</span>
+    <span class="app-header__streak" id="streak-indicator" title="Giorni consecutivi">🔥 0</span>
+  </header>
+
+  <main class="app-main">
+
+    <!-- ============ VISTA: OGGI ============ -->
+    <section class="view" id="view-oggi" data-view="oggi">
+      <h1>Oggi</h1>
+      <p class="view-placeholder">
+        Qui comparirà la sessione serale di oggi (RESET + MICRO) e lo stato del blocco/settimana corrente.
+      </p>
+      <button class="btn btn-primary" id="btn-inizia-sessione">Inizia sessione</button>
+    </section>
+
+    <!-- ============ VISTA: PROGRESSI ============ -->
+    <section class="view" id="view-progressi" data-view="progressi" hidden>
+      <h1>Progressi</h1>
+      <div id="progressi-body"></div>
+    </section>
+
+    <!-- ============ VISTA: IMPOSTAZIONI ============ -->
+    <section class="view" id="view-impostazioni" data-view="impostazioni" hidden>
+      <h1>Impostazioni</h1>
+      <ul class="settings-list">
+        <li><button class="btn btn-secondary" id="btn-rifai-assessment">Rifai assessment</button></li>
+      </ul>
+      <p class="view-placeholder">Blocco/settimana, promemoria e dati verranno gestiti da qui.</p>
+    </section>
+
+    <!-- ============ OVERLAY: SESSIONE (follow-along) ============ -->
+    <section class="view view-overlay" id="view-sessione" data-view="sessione" hidden>
+      <header class="overlay-header">
+        <button class="btn-icon" id="btn-chiudi-sessione" aria-label="Chiudi sessione">✕</button>
+        <span id="sessione-progress">Esercizio — di —</span>
+      </header>
+      <div class="overlay-body" id="sessione-body">
+        <p class="view-placeholder">Il motore del follow-along (timer, audio, wake lock) non è ancora collegato a un catalogo esercizi.</p>
+      </div>
+    </section>
+
+    <!-- ============ OVERLAY: ASSESSMENT ============ -->
+    <section class="view view-overlay" id="view-assessment" data-view="assessment" hidden>
+      <header class="overlay-header">
+        <button class="btn-icon" id="btn-chiudi-assessment" aria-label="Chiudi assessment">✕</button>
+        <span>Assessment iniziale</span>
+      </header>
+      <div class="overlay-body" id="assessment-body">
+        <p class="view-placeholder">Qui vivranno Test 1 (muscolo/nervo), Test 2 (lateralizzazione) e Test 3 (baseline dei cinque bersagli).</p>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="bottom-nav__item is-active" data-nav-target="oggi">
+      <span class="bottom-nav__icon">🏠</span>
+      <span class="bottom-nav__label">Oggi</span>
+    </button>
+    <button class="bottom-nav__item" data-nav-target="progressi">
+      <span class="bottom-nav__icon">📈</span>
+      <span class="bottom-nav__label">Progressi</span>
+    </button>
+    <button class="bottom-nav__item" data-nav-target="impostazioni">
+      <span class="bottom-nav__icon">⚙️</span>
+      <span class="bottom-nav__label">Impostazioni</span>
+    </button>
+  </nav>
+
+</div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
