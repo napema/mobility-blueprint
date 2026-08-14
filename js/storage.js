@@ -38,8 +38,13 @@ const DEFAULT_STATE = {
     blocco: 0,                    // 0..3
     settimana: 0,
     settimanaIniziataIl: null,    // data ISO (solo giorno) di inizio della settimana corrente
-    videoVistiObbligatori: [],    // sigle esercizio già viste in Blocco 0 (video obbligatorio una volta)
-    avvisoColloMostrato: false,   // filtro di sicurezza M5, mostrato una sola volta
+    inizioProgramma: null,        // data ISO del primo giorno: da qui si contano le settimane
+    videoVistiObbligatori: [],    // esercizi già introdotti almeno una volta
+    avvisoColloMostrato: false,   // filtro di sicurezza collo, mostrato una sola volta
+    // Regola 3: un solo aggancio, sempre lo stesso. Lo propone l'app.
+    aggancio: "Subito dopo la doccia serale",
+    oraPromemoria: "21:00",
+    notificheAttive: false,
   },
   storicoSessioni: [],       // [{ data, tipo: "reset+micro"|"carico", durataSec, esercizi: [...] }]
   streak: {
@@ -134,4 +139,36 @@ async function elencaFoto(bersaglioId) {
   });
 }
 
-export { getState, updateState, salvaFoto, elencaFoto };
+// --- IndexedDB: stato leggibile dal service worker ---
+// Il service worker non ha accesso a localStorage. Per decidere se un
+// promemoria serve davvero, gli lasciamo qui l'ultima data completata.
+
+const IDB_STATO = "stato";
+
+function openStatoDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("mobilita-stato", 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STATO)) db.createObjectStore(IDB_STATO);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function salvaStatoSW(dati) {
+  try {
+    const db = await openStatoDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STATO, "readwrite");
+      tx.objectStore(IDB_STATO).put(dati, "corrente");
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // se IndexedDB non è disponibile il promemoria resta comunque inviabile
+  }
+}
+
+export { getState, updateState, salvaFoto, elencaFoto, salvaStatoSW };

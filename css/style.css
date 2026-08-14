@@ -6,6 +6,33 @@
    chiaro e scuro, spaziatura a multipli di 8, tocchi minimi 44pt.
    ========================================================================= */
 
+/* --- SF Pro self-hosted: non dipende dal sistema, quindi resta identico
+   anche fuori da iOS e offline. Text per il corpo, Display per i titoli. --- */
+@font-face {
+  font-family: "SF Pro Text"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("../fonts/sf-pro-text-regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "SF Pro Text"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("../fonts/sf-pro-text-medium.woff2") format("woff2");
+}
+@font-face {
+  font-family: "SF Pro Text"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("../fonts/sf-pro-text-semibold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "SF Pro Text"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("../fonts/sf-pro-text-bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "SF Pro Display"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("../fonts/sf-pro-display-semibold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "SF Pro Display"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("../fonts/sf-pro-display-bold.woff2") format("woff2");
+}
+
 :root {
   /* --- colori semantici, modalità chiara --- */
   --blu: #007AFF;
@@ -89,8 +116,7 @@ html, body { height: 100%; margin: 0; }
 body {
   background: var(--sfondo);
   color: var(--etichetta);
-  font-family: -apple-system, "SF Pro Text", "SF Pro Display", BlinkMacSystemFont,
-               "Segoe UI", system-ui, sans-serif;
+  font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.4;
   letter-spacing: -0.01em;
@@ -115,8 +141,8 @@ body::before {
 
 /* ============================ tipografia ============================ */
 
-.titolo-grande { font-size: 34px; font-weight: 700; letter-spacing: -0.026em; line-height: 1.12; margin: 0; }
-.titolo-2      { font-size: 22px; font-weight: 700; letter-spacing: -0.021em; margin: 0; }
+.titolo-grande { font-family: "SF Pro Display", "SF Pro Text", -apple-system, sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.026em; line-height: 1.12; margin: 0; }
+.titolo-2      { font-family: "SF Pro Display", "SF Pro Text", -apple-system, sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.021em; margin: 0; }
 .testata       { font-size: 17px; font-weight: 600; letter-spacing: -0.014em; margin: 0; }
 .corpo         { font-size: 17px; }
 .sottotitolo   { font-size: 15px; color: var(--etichetta-2); }
@@ -628,6 +654,151 @@ body::before {
 
 .settings-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-1); }
 .view-placeholder { color: var(--etichetta-2); font-size: 15px; line-height: 1.45; }
+
+/* chip di scelta della sessione */
+.chip-scelta {
+  min-height: var(--tocco);
+  padding: 10px 16px;
+  border: 0.5px solid var(--separatore);
+  border-radius: 999px;
+  background: var(--sfondo-2);
+  color: var(--etichetta);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chip-scelta.is-active { background: var(--blu); border-color: var(--blu); color: #fff; font-weight: 600; }
+
+/* piano del programma nel tempo */
+.piano { list-style: none; margin: 0; padding: 0; }
+
+.piano-riga {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: 10px 0;
+  border-top: 0.5px solid var(--separatore);
+  font-size: 15px;
+}
+
+.piano-riga:first-child { border-top: none; }
+.piano-quando { flex: 0 0 92px; font-size: 13px; font-weight: 600; color: var(--etichetta-2); }
+.piano-cosa { flex: 1; min-width: 0; color: var(--etichetta-2); }
+.piano-riga.is-ora .piano-cosa, .piano-riga.is-ora .piano-quando { color: var(--etichetta); }
+.piano-riga.is-passata { opacity: 0.5; }
+
+/* ============================ ANIMAZIONI SVG ============================ */
+
+.anim-wrap { width: 100%; }
+.anim { margin: 0; }
+
+.anim__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  color: var(--etichetta);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.anim__svg circle:not(.anim__punto):not(.anim__attrezzo) { fill: none; }
+.anim__cap { font-size: 13px; color: var(--etichetta-2); text-align: center; margin-top: 8px; line-height: 1.35; }
+.anim__vista, .anim__nota { font-size: 9px; fill: var(--etichetta-3); stroke: none; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.anim__nota { fill: var(--etichetta-2); }
+.anim__punto { fill: var(--blu); stroke: none; }
+.anim__punto-linea { stroke: var(--blu); stroke-width: 2.4; }
+.anim__fisso { stroke: var(--arancio); }
+.anim__muro, .anim__suolo { stroke: var(--etichetta-3); stroke-width: 2.4; }
+.anim__attrezzo { fill: var(--riempimento); stroke: var(--etichetta-3); stroke-width: 2; }
+.anim__leggero { stroke: var(--etichetta-3); stroke-width: 2.4; }
+.anim__tesa, .a-tesa { stroke: var(--blu); }
+
+/* movimenti: lenti, in loop, con ritorno — devono far capire la forma */
+@keyframes a-tilt      { 0%,12% { transform: rotate(0deg) }   55%,72% { transform: rotate(15deg) }  100% { transform: rotate(0deg) } }
+@keyframes a-chin      { 0%,15% { transform: translateX(0) }  55%,72% { transform: translateX(-7px) } 100% { transform: translateX(0) } }
+@keyframes a-ginocchio { 0%,12% { transform: translateX(0) }  55%,72% { transform: translateX(9px) } 100% { transform: translateX(0) } }
+@keyframes a-gamba-su  { 0%,10% { transform: rotate(0deg) }   55%,70% { transform: rotate(-42deg) } 100% { transform: rotate(0deg) } }
+@keyframes a-piega     { 0%,12% { transform: rotate(0deg) }   55%,72% { transform: rotate(17deg) }  100% { transform: rotate(0deg) } }
+@keyframes a-giu       { 0%,12% { transform: rotate(0deg) }   55%,75% { transform: rotate(6deg) }   100% { transform: rotate(0deg) } }
+@keyframes a-rock      { 0%,10% { transform: translateX(0) }  52%,68% { transform: translateX(-16px) } 100% { transform: translateX(0) } }
+@keyframes a-tira      { 0%,12% { transform: rotate(0deg) }   55%,72% { transform: rotate(-13deg) } 100% { transform: rotate(0deg) } }
+@keyframes a-abduce    { 0%,10% { transform: rotate(0deg) }   50%,66% { transform: rotate(-24deg) } 100% { transform: rotate(0deg) } }
+@keyframes a-bacino    { 0%,12% { transform: rotate(0deg) }   55%,74% { transform: rotate(-7deg) }  100% { transform: rotate(0deg) } }
+@keyframes a-ponte     { 0%,12% { transform: rotate(0deg) }   52%,70% { transform: rotate(-13deg) } 100% { transform: rotate(0deg) } }
+@keyframes a-braccia   { 0%,10% { transform: translateY(0) }  52%,68% { transform: translateY(-16px) } 100% { transform: translateY(0) } }
+@keyframes a-stacco    { 0%,14% { transform: translateY(0) }  55%,72% { transform: translateY(-11px) } 100% { transform: translateY(0) } }
+@keyframes a-estende   { 0%,12% { transform: rotate(0deg) }   55%,72% { transform: rotate(9deg) }   100% { transform: rotate(0deg) } }
+@keyframes a-scende    { 0%,12% { transform: translateY(0) }  55%,72% { transform: translateY(9px) } 100% { transform: translateY(0) } }
+@keyframes a-fuori     { 0%,15% { transform: scaleX(1) }      55%,75% { transform: scaleX(1.12) }   100% { transform: scaleX(1) } }
+@keyframes a-cossack   { 0%,12% { transform: translateY(0) }  55%,72% { transform: translateY(7px) } 100% { transform: translateY(0) } }
+@keyframes a-spinta    { 0%,20% { transform: translateX(0) }  55%,70% { transform: translateX(4px) } 100% { transform: translateX(0) } }
+@keyframes a-allunga   { 0%,12% { transform: rotate(0deg) }   55%,72% { transform: rotate(-9deg) }  100% { transform: rotate(0deg) } }
+@keyframes a-pulsa     { 0%,100% { opacity: 1; r: 3.6 } 50% { opacity: .45; r: 5.2 } }
+
+.a-collo-tilt    { animation: a-tilt 4s ease-in-out infinite; transform-origin: 60px 52px; }
+.a-chin          { animation: a-chin 4s ease-in-out infinite; }
+.a-ginocchio     { animation: a-ginocchio 4s ease-in-out infinite; }
+.a-gamba-su      { animation: a-gamba-su 4.4s ease-in-out infinite; transform-origin: 84px 90px; }
+.a-piega         { animation: a-piega 4.4s ease-in-out infinite; transform-origin: 40px 100px; }
+.a-ginocchia-giu { animation: a-giu 4.4s ease-in-out infinite; transform-origin: 60px 62px; }
+.a-rock          { animation: a-rock 4.4s ease-in-out infinite; }
+.a-tira          { animation: a-tira 4.4s ease-in-out infinite; transform-origin: 70px 96px; }
+.a-abduce        { animation: a-abduce 4s ease-in-out infinite; transform-origin: 76px 90px; }
+.a-bacino        { animation: a-bacino 4.4s ease-in-out infinite; transform-origin: 56px 66px; }
+.a-ponte         { animation: a-ponte 4s ease-in-out infinite; transform-origin: 34px 96px; }
+.a-braccia-su    { animation: a-braccia 4.2s ease-in-out infinite; }
+.a-braccia-stacco{ animation: a-stacco 4s ease-in-out infinite; }
+.a-estende       { animation: a-estende 4.4s ease-in-out infinite; transform-origin: 86px 76px; }
+.a-scende        { animation: a-scende 4.4s ease-in-out infinite; }
+.a-spinge-fuori  { animation: a-fuori 4.4s ease-in-out infinite; transform-origin: 60px 58px; }
+.a-cossack       { animation: a-cossack 4.4s ease-in-out infinite; }
+.a-spinta, .a-spinta-piede { animation: a-spinta 3s ease-in-out infinite; }
+.a-allunga       { animation: a-allunga 4.4s ease-in-out infinite; transform-origin: 60px 50px; }
+.a-pulsa         { animation: a-pulsa 2.4s ease-in-out infinite; }
+
+/* ====================== SESSIONE: comandi sempre in cima ====================== */
+
+/* La sessione non scorre come una pagina: animazione/video, cronometro e
+   pulsante restano fissi, mentre passi e dettagli scorrono dietro. */
+#view-sessione .overlay-body { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+
+.sess-layout { display: flex; flex-direction: column; height: 100%; max-width: var(--colonna); margin-inline: auto; width: 100%; }
+
+.sess-testa {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-3) var(--sp-1);
+  background: var(--vetro-barra);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 0.5px solid var(--separatore);
+}
+
+.sess-media { border-radius: var(--raggio); overflow: hidden; background: var(--sfondo-2); border: 0.5px solid var(--separatore); }
+.sess-media iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; display: block; }
+.sess-media .anim-wrap { padding: var(--sp-1) var(--sp-2) var(--sp-2); }
+
+.sess-scorre { flex: 1 1 auto; overflow-y: auto; padding: var(--sp-2) var(--sp-3) var(--sp-3); -webkit-overflow-scrolling: touch; }
+
+.sess-piede {
+  flex: 0 0 auto;
+  padding: var(--sp-1) var(--sp-3) calc(var(--sp-2) + var(--sicura-basso));
+  background: var(--vetro-barra);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: 0.5px solid var(--separatore);
+}
+
+.sess-riga-timer { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); margin-top: var(--sp-1); }
+.sess-countdown-compatto { font-family: "SF Pro Display", -apple-system, sans-serif; font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; line-height: 1; }
+.is-prep .sess-countdown-compatto { color: var(--etichetta-2); }
+.is-lavoro .sess-countdown-compatto { color: var(--blu); }
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
