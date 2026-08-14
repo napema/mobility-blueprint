@@ -6,9 +6,33 @@ const LS_KEY = "mobilita.state.v1";
 const DEFAULT_STATE = {
   assessment: {
     completato: false,
-    esitoTest1: null,       // "neurale" | "muscolare" | null
-    esitoTest2: null,       // { latoLateralizzato: "sx"|"dx"|null, doppioTwist: bool }
-    baselineTest3: null,    // misure grezze + riferimenti foto dei 5 bersagli
+    // Test 1 — muscolo o nervo? (SPEC §4)
+    esitoTest1: {
+      variante1Cm: null,
+      variante2Cm: null,
+      variante3Cm: null,
+      esito: null,           // "neurale" | "muscolare" | null
+    },
+    // Test 2 — sette test di lateralizzazione, portati da asimmetria-bacino-protocollo.html
+    esitoTest2: {
+      risposte: [null, null, null, null, null, null, null], // "sx" | "dx" per test, indice 0-6
+      latoLateralizzato: null, // "sx" | "dx" | null
+      punteggio: null,         // quanti dei 7 test votano per latoLateralizzato
+      doppioTwist: false,
+      latoSopra: null,         // "sx" | "dx" | null — solo se doppioTwist
+      latoSotto: null,         // "sx" | "dx" | null — solo se doppioTwist
+    },
+    // Test 3 — baseline fotografica + misure grezze dei 5 bersagli
+    baselineTest3: {
+      bersagli: {
+        "deep-squat": { misure: { profonditaLivello: null, talloniATerra: null }, fotoData: null },
+        "pike": { misure: { distanzaDitaPavimentoCm: null }, fotoData: null },
+        "overhead-shoulder": { misure: { distanzaPolsoMuroCm: null, lombarePiatta: null }, fotoData: null },
+        "farfalla": { misure: { altezzaGinocchioSxCm: null, altezzaGinocchioDxCm: null }, fotoData: null },
+        "collo": { misure: { angoloDxGradi: null, angoloSxGradi: null }, fotoData: null },
+      },
+      completatoIl: null,
+    },
   },
   programma: {
     blocco: 0,              // 0..3
