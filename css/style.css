@@ -160,6 +160,13 @@ body {
   font-weight: 600;
 }
 
+.overlay-header span {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+
 .overlay-body {
   flex: 1;
   overflow-y: auto;
@@ -391,4 +398,60 @@ body {
 
 .photo-input-label input {
   display: none;
+}
+
+/* Sessione (follow-along) */
+.sess-tempo-totale {
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  text-align: center;
+  margin: 8px 0 4px;
+}
+
+.sess-badge {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.sess-titolo {
+  text-align: center;
+  margin: 0 0 10px;
+}
+
+.sess-istruzioni {
+  text-align: center;
+  color: var(--fg-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+
+.sess-countdown {
+  font-size: 5.5rem;
+  font-weight: 800;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin: 24px 0;
+  color: var(--fg);
+}
+
+.sess-gate,
+.sess-fine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  padding-top: 30px;
+}
+
+.sess-gate .lat-video,
+#sess-video {
+  justify-content: center;
 }

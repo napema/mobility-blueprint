@@ -4,6 +4,7 @@
 import { getState } from "./storage.js";
 import { renderProgressi } from "./progressi.js";
 import { renderAssessment } from "./assessment.js";
+import { renderSessione, togglePausa, fermaSessione, valutaAvanzamentoSettimana } from "./sessione.js";
 
 const TAB_VIEWS = ["oggi", "progressi", "impostazioni"];
 const OVERLAY_VIEWS = ["sessione", "assessment"];
@@ -25,10 +26,16 @@ function apriOverlay(nome) {
   if (nome === "assessment") {
     renderAssessment(document.getElementById("assessment-body"));
   }
+  if (nome === "sessione") {
+    renderSessione(document.getElementById("sessione-body"));
+  }
 }
 
 function chiudiOverlay(nome) {
   document.getElementById(`view-${nome}`).hidden = true;
+  if (nome === "sessione") {
+    fermaSessione();
+  }
 }
 
 function aggiornaStreak() {
@@ -45,6 +52,8 @@ function initNavigazione() {
     .addEventListener("click", () => apriOverlay("sessione"));
   document.getElementById("btn-chiudi-sessione")
     .addEventListener("click", () => chiudiOverlay("sessione"));
+  document.getElementById("btn-pausa-sessione")
+    .addEventListener("click", () => togglePausa());
 
   document.getElementById("btn-rifai-assessment")
     .addEventListener("click", () => apriOverlay("assessment"));
@@ -74,6 +83,7 @@ function init() {
   aggiornaStreak();
   initServiceWorker();
   initAssessmentAlPrimoAvvio();
+  valutaAvanzamentoSettimana();
 }
 
 document.addEventListener("DOMContentLoaded", init);

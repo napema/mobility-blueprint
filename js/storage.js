@@ -35,8 +35,11 @@ const DEFAULT_STATE = {
     },
   },
   programma: {
-    blocco: 0,              // 0..3
+    blocco: 0,                    // 0..3
     settimana: 0,
+    settimanaIniziataIl: null,    // data ISO (solo giorno) di inizio della settimana corrente
+    videoVistiObbligatori: [],    // sigle esercizio già viste in Blocco 0 (video obbligatorio una volta)
+    avvisoColloMostrato: false,   // filtro di sicurezza M5, mostrato una sola volta
   },
   storicoSessioni: [],       // [{ data, tipo: "reset+micro"|"carico", durataSec, esercizi: [...] }]
   streak: {
