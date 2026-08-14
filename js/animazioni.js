@@ -1,419 +1,710 @@
-// animazioni.js — figure schematiche animate in SVG, due angolazioni dove
-// serve (fronte + profilo), loop continuo, con evidenziato il punto che
-// conta (SPEC §7). Sono la fonte primaria: i video di terzi mancano per
-// la maggior parte degli esercizi, l'animazione no.
+// animazioni.js — figure schematiche in SVG.
 //
-// Le figure sono stilizzate di proposito: servono a far capire la forma
-// del movimento e cosa non deve muoversi, non a essere anatomiche.
-// Il movimento è in CSS (@keyframes in style.css), non in SMIL.
+// COSA È CAMBIATO E PERCHÉ.
+// La versione precedente animava un singolo segmento (una gamba che
+// ruota, un braccio che trasla) lasciando fermo il resto: il risultato
+// non si leggeva come un corpo, ma come pezzi che si muovono scollegati.
+//
+// Qui una posa è uno SCHELETRO COMPLETO definito per coordinate di
+// giunto. Il disegno nasce sempre dallo stesso codice, quindi la figura
+// è sempre un corpo coerente. Il movimento è una transizione tra due
+// pose complete (flipbook), non la rotazione di un pezzo.
+//
+// Per le tenute statiche non c'è movimento da mostrare: c'è una POSIZIONE
+// da capire. Lì la figura è una sola, con una freccia che indica la
+// direzione dell'intenzione e un marcatore su ciò che NON deve muoversi.
 
-const TESTA = (x, y, r = 9) => `<circle cx="${x}" cy="${y}" r="${r}"/>`;
+// ---------------------------------------------------------------------
+// Sistema di coordinate: viewBox 200x150. Suolo y=134, muro x=16.
+// Giunti: testa, collo, bacino, spalla/gomito/mano (v=vicino, l=lontano),
+// ginocchio/piede (v/l). "v" = arto più vicino a chi guarda.
+// ---------------------------------------------------------------------
 
-function telaio(contenuto, etichetta) {
-  return `<figure class="anim">
-    <svg viewBox="0 0 240 130" class="anim__svg" role="img" aria-label="${etichetta}">
-      ${contenuto}
-    </svg>
-    <figcaption class="anim__cap">${etichetta}</figcaption>
-  </figure>`;
-}
+const SUOLO = 134;
+const MURO = 16;
 
-// pannello: g traslato, con titolino della vista
-function vista(x, titolo, contenuto) {
-  return `<g transform="translate(${x},0)">
-    <text class="anim__vista" x="60" y="124" text-anchor="middle">${titolo}</text>
-    ${contenuto}
+function disegnaFigura(p, classe = "") {
+  const seg = (a, b, cls = "") => (a && b) ? `<path class="fig__arto ${cls}" d="M${a[0]} ${a[1]} L${b[0]} ${b[1]}"/>` : "";
+  return `<g class="fig ${classe}">
+    ${seg(p.spallaL, p.gomitoL, "fig__lontano")}
+    ${seg(p.gomitoL, p.manoL, "fig__lontano")}
+    ${seg(p.bacino, p.ginocchioL, "fig__lontano")}
+    ${seg(p.ginocchioL, p.piedeL, "fig__lontano")}
+    ${seg(p.collo, p.bacino, "fig__tronco")}
+    ${p.spallaV && p.spallaL ? seg(p.spallaV, p.spallaL) : ""}
+    ${seg(p.bacino, p.ginocchioV)}
+    ${seg(p.ginocchioV, p.piedeV)}
+    ${seg(p.spallaV, p.gomitoV)}
+    ${seg(p.gomitoV, p.manoV)}
+    <circle class="fig__testa" cx="${p.testa[0]}" cy="${p.testa[1]}" r="11"/>
   </g>`;
 }
 
-const ANIMAZIONI = {
-  // ---------- COLLO ----------
-  "collo-flessione-laterale": () => telaio(
-    vista(0, "fronte", `
-      <g class="a-collo-tilt">
-        ${TESTA(60, 28)}
-        <path d="M60 37 V52"/>
-      </g>
-      <path d="M36 54 H84"/>
-      <path d="M60 54 V88"/>
-      <path d="M36 54 V70" class="anim__fisso"/>
-      <path d="M84 54 V70"/>
-      <circle cx="36" cy="72" r="3.4" class="anim__punto"/>
-    `) +
-    vista(120, "cosa non si muove", `
-      ${TESTA(60, 28)}
-      <path d="M60 37 V52"/>
-      <path d="M36 54 H84" class="anim__fisso"/>
-      <path d="M60 54 V88"/>
-      <text class="anim__nota" x="60" y="104" text-anchor="middle">spalla giù</text>
-    `),
-    "Orecchio verso la spalla, spalla opposta bloccata in basso"
-  ),
+function freccia(da, a) {
+  const dx = a[0] - da[0], dy = a[1] - da[1];
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len, uy = dy / len;
+  const px = -uy, py = ux;
+  const p1 = [a[0] - ux * 11 + px * 6, a[1] - uy * 11 + py * 6];
+  const p2 = [a[0] - ux * 11 - px * 6, a[1] - uy * 11 - py * 6];
+  return `<g class="acc__freccia">
+    <path d="M${da[0]} ${da[1]} L${a[0]} ${a[1]}"/>
+    <path d="M${a[0]} ${a[1]} L${p1[0]} ${p1[1]} M${a[0]} ${a[1]} L${p2[0]} ${p2[1]}"/>
+  </g>`;
+}
 
-  "collo-isometria": () => telaio(
-    vista(0, "fronte", `
-      ${TESTA(60, 30)}
-      <path d="M60 39 V54"/>
-      <path d="M36 56 H84"/>
-      <path d="M60 56 V90"/>
-      <path d="M44 34 H51" class="a-spinta"/>
-      <circle cx="69" cy="30" r="3.4" class="anim__punto a-pulsa"/>
-    `) +
-    vista(120, "la testa non si muove", `
-      ${TESTA(60, 30)}
-      <path d="M60 39 V54"/>
-      <path d="M36 56 H84" class="anim__fisso"/>
-      <text class="anim__nota" x="60" y="104" text-anchor="middle">isometria</text>
-    `),
-    "La mano resiste, la testa spinge ma resta ferma"
-  ),
+const fisso = ([x, y]) => `<g class="acc__fisso"><circle cx="${x}" cy="${y}" r="8"/><path d="M${x - 5} ${y} h10"/></g>`;
+const punto = ([x, y]) => `<circle class="acc__punto" cx="${x}" cy="${y}" r="5"/>`;
 
-  "collo-chin-tuck": () => telaio(
-    vista(60, "profilo", `
-      <g class="a-chin">
-        ${TESTA(58, 30)}
-        <path d="M66 30 h6" class="anim__punto"/>
-      </g>
-      <path d="M58 39 V54"/>
-      <path d="M58 54 V92"/>
-      <path d="M44 54 H72"/>
-      <text class="anim__nota" x="60" y="108" text-anchor="middle">doppio mento</text>
-    `),
-    "Il mento scorre indietro in orizzontale, senza abbassarsi"
-  ),
+function ambiente(tipo) {
+  if (tipo === "suolo") return `<path class="amb" d="M8 ${SUOLO} H192"/>`;
+  if (tipo === "muro") return `<path class="amb" d="M${MURO} 10 V${SUOLO}"/><path class="amb" d="M${MURO} ${SUOLO} H192"/>`;
+  if (tipo === "sedia") return `<path class="amb" d="M8 ${SUOLO} H192"/><path class="amb" d="M120 ${SUOLO} V96 H176"/>`;
+  if (tipo === "rialzo") return `<path class="amb" d="M8 ${SUOLO} H192"/><path class="amb" d="M140 ${SUOLO} V108 H188"/>`;
+  return "";
+}
 
-  // ---------- CAVIGLIA ----------
-  "caviglia-knee-to-wall": () => telaio(
-    vista(60, "profilo", `
-      <path d="M22 12 V116" class="anim__muro"/>
-      <path d="M30 116 H104"/>
-      <g class="a-ginocchio">
-        <path d="M64 60 L44 88"/>
-      </g>
-      <path d="M64 60 V34"/>
-      ${TESTA(64, 25, 7)}
-      <path d="M44 88 L40 108"/>
-      <path d="M40 108 H62"/>
-      <circle cx="40" cy="108" r="3.6" class="anim__punto"/>
-      <text class="anim__nota" x="66" y="122" text-anchor="middle">tallone incollato</text>
-    `),
-    "Il ginocchio va oltre le dita, il tallone non si stacca"
-  ),
+// ---------------------------------------------------------------------
+// Pose di base, poi variate. Coordinate scelte per leggere come un corpo.
+// ---------------------------------------------------------------------
 
-  "polpaccio-muro": () => telaio(
-    vista(60, "profilo", `
-      <path d="M20 12 V116" class="anim__muro"/>
-      <path d="M24 116 H108"/>
-      ${TESTA(58, 30, 7)}
-      <path d="M58 37 L70 74"/>
-      <path d="M58 40 L28 34"/>
-      <path d="M70 74 L92 106" class="a-tesa"/>
-      <path d="M70 74 L52 100"/>
-      <path d="M52 100 L46 110"/>
-      <circle cx="92" cy="106" r="3.6" class="anim__punto"/>
-      <text class="anim__nota" x="64" y="122" text-anchor="middle">gamba dietro tesa</text>
-    `),
-    "Gamba dietro distesa, tallone a terra"
-  ),
-
-  // ---------- FEMORALI ----------
-  "aslr": () => telaio(
-    vista(60, "profilo", `
-      <path d="M18 96 H112" class="anim__suolo"/>
-      ${TESTA(30, 86, 7)}
-      <path d="M38 90 H84"/>
-      <g class="a-gamba-su">
-        <path d="M84 90 L112 84"/>
-      </g>
-      <path d="M84 92 L112 96"/>
-      <circle cx="112" cy="84" r="3.6" class="anim__punto"/>
-      <text class="anim__nota" x="60" y="116" text-anchor="middle">niente mani, niente slancio</text>
-    `),
-    "La gamba tesa sale da sola, l'altra resta a terra"
-  ),
-
-  "pike-seduto": () => telaio(
-    vista(60, "profilo", `
-      <path d="M18 100 H112" class="anim__suolo"/>
-      <path d="M40 100 H104"/>
-      <g class="a-piega">
-        <path d="M40 100 L46 62"/>
-        ${TESTA(48, 54, 7)}
-        <path d="M46 66 L74 84" class="anim__leggero"/>
-      </g>
-      <circle cx="52" cy="82" r="3.6" class="anim__punto a-pulsa"/>
-      <text class="anim__nota" x="60" y="118" text-anchor="middle">tirano gli addominali</text>
-    `),
-    "Ci si tira giù con gli addominali, non con le braccia"
-  ),
-
-  // ---------- ANCA: adduttori e rotatori ----------
-  "farfalla": () => telaio(
-    vista(60, "fronte", `
-      ${TESTA(60, 24, 8)}
-      <path d="M60 32 V62"/>
-      <g class="a-ginocchia-giu">
-        <path d="M60 62 L28 82"/>
-        <path d="M60 62 L92 82"/>
-      </g>
-      <path d="M28 82 L60 96"/>
-      <path d="M92 82 L60 96"/>
-      <circle cx="28" cy="82" r="3.6" class="anim__punto"/>
-      <circle cx="92" cy="82" r="3.6" class="anim__punto"/>
-      <text class="anim__nota" x="60" y="116" text-anchor="middle">scendono da sole</text>
-    `),
-    "Piante unite, le ginocchia scendono per gravità"
-  ),
-
-  "frog-rock": () => telaio(
-    vista(60, "profilo", `
-      <path d="M14 104 H114" class="anim__suolo"/>
-      <g class="a-rock">
-        ${TESTA(38, 52, 7)}
-        <path d="M46 56 H84"/>
-        <path d="M46 56 L40 88"/>
-        <path d="M84 56 L92 88"/>
-        <path d="M40 88 H30"/>
-        <path d="M92 88 H102"/>
-      </g>
-      <text class="anim__nota" x="60" y="120" text-anchor="middle">il bacino va indietro</text>
-    `),
-    "Ginocchia larghe, il bacino oscilla verso i talloni"
-  ),
-
-  "novanta-novanta": () => telaio(
-    vista(60, "dall'alto", `
-      ${TESTA(60, 26, 8)}
-      <path d="M60 34 V58"/>
-      <path d="M60 58 L26 58"/>
-      <path d="M26 58 L26 88"/>
-      <path d="M60 58 L94 66"/>
-      <path d="M94 66 L94 96"/>
-      <circle cx="26" cy="58" r="3.6" class="anim__punto a-pulsa"/>
-      <text class="anim__nota" x="60" y="116" text-anchor="middle">due angoli retti</text>
-    `),
-    "Una gamba davanti a 90°, l'altra di lato a 90°"
-  ),
-
-  "figure-4": () => telaio(
-    vista(60, "profilo", `
-      <path d="M14 104 H114" class="anim__suolo"/>
-      ${TESTA(26, 92, 7)}
-      <path d="M34 96 H70"/>
-      <g class="a-tira">
-        <path d="M70 96 L88 70"/>
-        <path d="M88 70 L74 50"/>
-        <path d="M78 82 L100 66"/>
-      </g>
-      <circle cx="86" cy="74" r="3.6" class="anim__punto"/>
-      <text class="anim__nota" x="60" y="120" text-anchor="middle">caviglia sopra il ginocchio</text>
-    `),
-    "Figura a 4, si tira la coscia verso il petto"
-  ),
-
-  "abduzione-laterale": () => telaio(
-    vista(60, "profilo", `
-      <path d="M14 104 H114" class="anim__suolo"/>
-      ${TESTA(26, 88, 7)}
-      <path d="M34 92 H76"/>
-      <path d="M76 92 L104 100"/>
-      <g class="a-abduce">
-        <path d="M76 90 L104 76"/>
-      </g>
-      <circle cx="104" cy="76" r="3.6" class="anim__punto"/>
-      <text class="anim__nota" x="60" y="120" text-anchor="middle">sale e scende lenta</text>
-    `),
-    "Sdraiato sul fianco, la gamba sopra si alza"
-  ),
-
-  // ---------- FLESSORI D'ANCA ----------
-  "affondo-flessori": () => telaio(
-    vista(60, "profilo", `
-      <path d="M14 108 H114" class="anim__suolo"/>
-      ${TESTA(56, 30, 7)}
-      <g class="a-bacino">
-        <path d="M56 38 V66"/>
-        <path d="M56 66 L34 88"/>
-        <path d="M56 66 L84 84"/>
-      </g>
-      <path d="M34 88 L34 108"/>
-      <path d="M84 84 L100 108"/>
-      <circle cx="56" cy="66" r="4" class="anim__punto a-pulsa"/>
-      <text class="anim__nota" x="60" y="122" text-anchor="middle">coccige sotto</text>
-    `),
-    "Senza retroversione del bacino non allunghi niente"
-  ),
-
-  "ponte-glutei": () => telaio(
-    vista(60, "profilo", `
-      <path d="M14 104 H114" class="anim__suolo"/>
-      ${TESTA(26, 92, 7)}
-      <g class="a-ponte">
-        <path d="M34 96 L74 76"/>
-      </g>
-      <path d="M74 78 L86 100"/>
-      <path d="M86 100 H98"/>
-      <circle cx="66" cy="80" r="3.6" class="anim__punto"/>
-      <text class="anim__nota" x="60" y="120" text-anchor="middle">il bacino sale</text>
-    `),
-    "I glutei spingono il bacino verso l'alto"
-  ),
-
-  // ---------- TORACICA / SPALLE ----------
-  "wall-slide": () => telaio(
-    vista(60, "fronte", `
-      <path d="M12 14 V112" class="anim__muro"/>
-      ${TESTA(60, 28, 8)}
-      <path d="M60 36 V84"/>
-      <g class="a-braccia-su">
-        <path d="M60 50 L34 40"/>
-        <path d="M60 50 L86 40"/>
-      </g>
-      <path d="M44 92 L60 84 L76 92"/>
-      <text class="anim__nota" x="62" y="120" text-anchor="middle">lombare piatta</text>
-    `),
-    "Le braccia scorrono senza staccare i contatti dal muro"
-  ),
-
-  "prone-liftoff": () => telaio(
-    vista(60, "profilo", `
-      <path d="M14 96 H114" class="anim__suolo"/>
-      <path d="M28 88 H86"/>
-      ${TESTA(24, 84, 7)}
-      <g class="a-braccia-stacco">
-        <path d="M86 88 L114 82"/>
-      </g>
-      <circle cx="112" cy="82" r="3.6" class="anim__punto"/>
-      <text class="anim__nota" x="60" y="116" text-anchor="middle">costole giù</text>
-    `),
-    "Le braccia si staccano da terra, le costole restano basse"
-  ),
-
-  "estensione-toracica": () => telaio(
-    vista(60, "profilo", `
-      <path d="M14 104 H114" class="anim__suolo"/>
-      <circle cx="62" cy="88" r="9" class="anim__attrezzo"/>
-      <g class="a-estende">
-        <path d="M40 92 L86 76"/>
-        ${TESTA(34, 90, 7)}
-      </g>
-      <path d="M86 78 L96 100"/>
-      <text class="anim__nota" x="60" y="120" text-anchor="middle">roller sotto le scapole</text>
-    `),
-    "Estensione sopra il roller, lenta e controllata"
-  ),
-
-  "gran-dorsale": () => telaio(
-    vista(60, "profilo", `
-      <path d="M14 108 H114" class="anim__suolo"/>
-      <path d="M84 74 H112" class="anim__attrezzo"/>
-      <g class="a-scende">
-        <path d="M46 62 L86 72"/>
-        ${TESTA(40, 60, 7)}
-      </g>
-      <path d="M46 64 L44 96"/>
-      <path d="M44 96 H62"/>
-      <path d="M52 66 q 6 10 -2 18" class="anim__punto-linea"/>
-      <text class="anim__nota" x="60" y="122" text-anchor="middle">schiena ARROTONDATA</text>
-    `),
-    "Con la lombare flessa, altrimenti alleni gli estensori"
-  ),
-
-  // ---------- SQUAT ----------
-  "squat-tenuta": () => telaio(
-    vista(60, "fronte", `
-      <path d="M14 106 H114" class="anim__suolo"/>
-      ${TESTA(60, 24, 8)}
-      <path d="M60 32 V58"/>
-      <g class="a-spinge-fuori">
-        <path d="M60 58 L34 82"/>
-        <path d="M60 58 L86 82"/>
-      </g>
-      <path d="M34 82 L34 104"/>
-      <path d="M86 82 L86 104"/>
-      <path d="M60 62 L44 76"/>
-      <path d="M60 62 L76 76"/>
-      <circle cx="34" cy="82" r="3.6" class="anim__punto"/>
-      <circle cx="86" cy="82" r="3.6" class="anim__punto"/>
-      <text class="anim__nota" x="60" y="120" text-anchor="middle">gomiti spingono fuori</text>
-    `),
-    "Accosciata piena, i gomiti aprono le ginocchia"
-  ),
-
-  "cossack": () => telaio(
-    vista(60, "fronte", `
-      <path d="M10 104 H116" class="anim__suolo"/>
-      ${TESTA(52, 28, 8)}
-      <path d="M52 36 V60"/>
-      <g class="a-cossack">
-        <path d="M52 60 L34 84"/>
-        <path d="M52 60 L98 92"/>
-      </g>
-      <path d="M34 84 L34 104"/>
-      <circle cx="98" cy="92" r="3.6" class="anim__punto"/>
-      <text class="anim__nota" x="60" y="120" text-anchor="middle">l'altra gamba resta tesa</text>
-    `),
-    "Si scende su una gamba, l'altra distesa di lato"
-  ),
-
-  // ---------- BACINO (protocollo laterale) ----------
-  "sidelying-gluteo": () => telaio(
-    vista(60, "profilo", `
-      <path d="M14 104 H114" class="anim__suolo"/>
-      ${TESTA(26, 86, 7)}
-      <path d="M34 90 H74"/>
-      <path d="M74 90 L92 74"/>
-      <path d="M74 92 L94 100"/>
-      <g class="a-spinta-piede">
-        <path d="M92 74 L104 84"/>
-      </g>
-      <circle cx="102" cy="84" r="3.6" class="anim__punto a-pulsa"/>
-      <text class="anim__nota" x="60" y="120" text-anchor="middle">tallone interno + alluce</text>
-    `),
-    "Spinta dai due contatti del piede, il gluteo si accende"
-  ),
-
-  "allungo-sopra-testa": () => telaio(
-    vista(60, "fronte", `
-      <path d="M14 110 H114" class="anim__suolo"/>
-      ${TESTA(60, 34, 8)}
-      <path d="M60 42 V78"/>
-      <g class="a-allunga">
-        <path d="M60 50 L44 20"/>
-      </g>
-      <path d="M60 50 L78 66"/>
-      <path d="M60 78 L48 108"/>
-      <path d="M60 78 L74 108"/>
-      <circle cx="44" cy="20" r="3.6" class="anim__punto"/>
-      <circle cx="74" cy="108" r="3.6" class="anim__punto"/>
-      <text class="anim__nota" x="60" y="124" text-anchor="middle">peso sul tallone opposto</text>
-    `),
-    "Il braccio allunga in alto, il peso trasla sul tallone opposto"
-  ),
-
-  // fallback: figura neutra, meglio di uno spazio vuoto
-  "generica": () => telaio(
-    vista(60, "posizione", `
-      <path d="M14 106 H114" class="anim__suolo"/>
-      ${TESTA(60, 28, 8)}
-      <path d="M60 36 V70"/>
-      <path d="M60 44 L38 58"/>
-      <path d="M60 44 L82 58"/>
-      <path d="M60 70 L46 104"/>
-      <path d="M60 70 L74 104"/>
-      <text class="anim__nota" x="60" y="122" text-anchor="middle">segui i passi qui sotto</text>
-    `),
-    "Posizione descritta nei passi"
-  ),
+const inPiedi = {
+  testa: [100, 30], collo: [100, 44], bacino: [100, 84],
+  spallaV: [100, 50], gomitoV: [100, 68], manoV: [100, 86],
+  spallaL: [100, 50], gomitoL: [100, 68], manoL: [100, 86],
+  ginocchioV: [96, 110], piedeV: [96, SUOLO],
+  ginocchioL: [104, 110], piedeL: [104, SUOLO],
 };
 
+const supino = {
+  testa: [42, 116], collo: [56, 118], bacino: [104, 120],
+  spallaV: [60, 116], gomitoV: [76, 122], manoV: [92, 126],
+  spallaL: [60, 116], gomitoL: [76, 122], manoL: [92, 126],
+  ginocchioV: [136, 120], piedeV: [168, 122],
+  ginocchioL: [136, 122], piedeL: [168, 124],
+};
+
+const seduto = {
+  testa: [72, 52], collo: [74, 66], bacino: [78, 118],
+  spallaV: [74, 72], gomitoV: [92, 88], manoV: [112, 104],
+  spallaL: [74, 72], gomitoL: [92, 88], manoL: [112, 104],
+  ginocchioV: [126, 120], piedeV: [166, 122],
+  ginocchioL: [126, 122], piedeL: [166, 124],
+};
+
+const quadrupedia = {
+  testa: [46, 74], collo: [60, 78], bacino: [128, 76],
+  spallaV: [62, 80], gomitoV: [62, 106], manoV: [62, SUOLO],
+  spallaL: [62, 80], gomitoL: [62, 106], manoL: [62, SUOLO],
+  ginocchioV: [132, 108], piedeV: [150, SUOLO],
+  ginocchioL: [132, 108], piedeL: [150, SUOLO],
+};
+
+const sulFianco = {
+  testa: [40, 104], collo: [56, 106], bacino: [110, 110],
+  spallaV: [58, 104], gomitoV: [52, 120], manoV: [64, SUOLO],
+  spallaL: [58, 104], gomitoL: [52, 120], manoL: [64, SUOLO],
+  ginocchioV: [140, 116], piedeV: [168, 124],
+  ginocchioL: [140, 118], piedeL: [168, 126],
+};
+
+const v = (base, delta) => ({ ...base, ...delta });
+
+// ---------------------------------------------------------------------
+// Catalogo. `pose`: 1 = posizione da capire, 2 = movimento (flipbook).
+// ---------------------------------------------------------------------
+
+const ANIMAZIONI = {
+  // ---------------- COLLO ----------------
+  "collo-flessione-laterale": {
+    vista: "fronte", ambiente: null,
+    etichetta: "Orecchio verso la spalla. La spalla opposta resta bloccata in basso.",
+    pose: [
+      v(inPiedi, { testa: [100, 30], collo: [100, 44] }),
+      v(inPiedi, {
+        testa: [84, 36], collo: [98, 46],
+        spallaV: [80, 52], gomitoV: [76, 72], manoV: [74, 92],
+        spallaL: [120, 50], gomitoL: [124, 70], manoL: [126, 90],
+      }),
+    ],
+    accenti: (p) => freccia([116, 26], [86, 26]) + fisso([120, 50]),
+  },
+
+  "collo-isometria": {
+    vista: "fronte", ambiente: null,
+    etichetta: "La mano resiste, la testa spinge. La testa non si muove.",
+    pose: [v(inPiedi, {
+      spallaV: [80, 52], gomitoV: [64, 44], manoV: [86, 30],
+      spallaL: [120, 50], gomitoL: [124, 70], manoL: [126, 90],
+    })],
+    accenti: () => freccia([70, 30], [84, 30]) + fisso([100, 30]),
+  },
+
+  "collo-chin-tuck": {
+    vista: "profilo", ambiente: null,
+    etichetta: "Il mento scorre indietro in orizzontale, senza abbassarsi.",
+    pose: [
+      v(inPiedi, { testa: [108, 30] }),
+      v(inPiedi, { testa: [96, 30] }),
+    ],
+    accenti: () => freccia([124, 30], [110, 30]),
+  },
+
+  // ---------------- CAVIGLIA ----------------
+  "caviglia-knee-to-wall": {
+    vista: "profilo", ambiente: "muro",
+    etichetta: "Il ginocchio va oltre le dita. Il tallone non si stacca.",
+    pose: [
+      v(inPiedi, {
+        testa: [86, 34], collo: [86, 48], bacino: [88, 88],
+        spallaV: [86, 54], gomitoV: [72, 68], manoV: [40, 66],
+        spallaL: [86, 54], gomitoL: [72, 68], manoL: [40, 66],
+        ginocchioV: [66, 104], piedeV: [46, SUOLO],
+        ginocchioL: [96, 108], piedeL: [104, SUOLO],
+      }),
+      v(inPiedi, {
+        testa: [82, 34], collo: [82, 48], bacino: [86, 88],
+        spallaV: [82, 54], gomitoV: [68, 68], manoV: [38, 66],
+        spallaL: [82, 54], gomitoL: [68, 68], manoL: [38, 66],
+        ginocchioV: [48, 104], piedeV: [46, SUOLO],
+        ginocchioL: [94, 108], piedeL: [104, SUOLO],
+      }),
+    ],
+    accenti: () => freccia([70, 96], [44, 96]) + fisso([46, SUOLO]),
+  },
+
+  "polpaccio-muro": {
+    vista: "profilo", ambiente: "muro",
+    etichetta: "Gamba dietro tesa, tallone incollato a terra.",
+    pose: [v(inPiedi, {
+      testa: [76, 40], collo: [80, 54], bacino: [96, 88],
+      spallaV: [80, 58], gomitoV: [58, 56], manoV: [24, 52],
+      spallaL: [80, 58], gomitoL: [58, 56], manoL: [24, 52],
+      ginocchioV: [70, 104], piedeV: [56, SUOLO],
+      ginocchioL: [136, 108], piedeL: [166, SUOLO],
+    })],
+    accenti: () => punto([166, SUOLO]) + freccia([150, 96], [166, 122]),
+  },
+
+  "polpaccio-soleo": {
+    vista: "profilo", ambiente: "muro",
+    etichetta: "Come sopra ma col ginocchio dietro PIEGATO: cambia bersaglio.",
+    pose: [v(inPiedi, {
+      testa: [72, 46], collo: [76, 60], bacino: [92, 94],
+      spallaV: [76, 64], gomitoV: [56, 60], manoV: [24, 54],
+      spallaL: [76, 64], gomitoL: [56, 60], manoL: [24, 54],
+      ginocchioV: [66, 108], piedeV: [54, SUOLO],
+      ginocchioL: [126, 104], piedeL: [158, SUOLO],
+    })],
+    accenti: () => punto([158, SUOLO]) + punto([126, 104]),
+  },
+
+  "talloni-su": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Le punte si alzano, i talloni restano a terra.",
+    pose: [
+      v(inPiedi, { piedeV: [96, SUOLO], piedeL: [104, SUOLO] }),
+      v(inPiedi, { ginocchioV: [96, 108], piedeV: [92, 126], ginocchioL: [104, 108], piedeL: [100, 126] }),
+    ],
+    accenti: () => freccia([120, 130], [120, 116]),
+  },
+
+  "squat-tenuta": {
+    vista: "fronte", ambiente: "suolo",
+    etichetta: "Accosciata piena. I gomiti spingono le ginocchia in fuori.",
+    pose: [v(inPiedi, {
+      testa: [100, 52], collo: [100, 66], bacino: [100, 100],
+      spallaV: [86, 72], gomitoV: [76, 92], manoV: [100, 84],
+      spallaL: [114, 72], gomitoL: [124, 92], manoL: [100, 84],
+      ginocchioV: [66, 104], piedeV: [74, SUOLO],
+      ginocchioL: [134, 104], piedeL: [126, SUOLO],
+    })],
+    accenti: () => freccia([80, 104], [58, 104]) + freccia([120, 104], [142, 104]),
+  },
+
+  // ---------------- FEMORALI ----------------
+  "aslr": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "La gamba tesa sale da sola: niente slancio, niente mani.",
+    pose: [
+      v(supino, { ginocchioV: [136, 118], piedeV: [168, 120] }),
+      v(supino, { ginocchioV: [132, 84], piedeV: [150, 46] }),
+    ],
+    accenti: () => freccia([168, 110], [162, 62]),
+  },
+
+  "aslr-eccentrico": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Sale a ginocchio piegato, scende a gamba tesa.",
+    pose: [
+      v(supino, { ginocchioV: [126, 78], piedeV: [104, 52] }),
+      v(supino, { ginocchioV: [132, 84], piedeV: [150, 46] }),
+    ],
+    accenti: () => freccia([120, 56], [148, 50]),
+  },
+
+  "pike-seduto": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Ti tiri giù con gli addominali, non con le braccia.",
+    pose: [
+      seduto,
+      v(seduto, {
+        testa: [100, 84], collo: [96, 94], bacino: [78, 118],
+        spallaV: [96, 96], gomitoV: [118, 104], manoV: [140, 114],
+        spallaL: [96, 96], gomitoL: [118, 104], manoL: [140, 114],
+      }),
+    ],
+    accenti: () => freccia([100, 60], [112, 88]) + punto([88, 106]),
+  },
+
+  "femorale-piedi": {
+    vista: "profilo", ambiente: "rialzo",
+    etichetta: "Schiena DRITTA, non arrotondata. Il petto scende verso il piede.",
+    pose: [v(inPiedi, {
+      testa: [110, 54], collo: [106, 66], bacino: [92, 96],
+      spallaV: [106, 70], gomitoV: [122, 84], manoV: [140, 100],
+      spallaL: [106, 70], gomitoL: [122, 84], manoL: [140, 100],
+      ginocchioV: [88, 116], piedeV: [86, SUOLO],
+      ginocchioL: [130, 104], piedeL: [156, 108],
+    })],
+    accenti: () => freccia([118, 48], [136, 76]) + fisso([100, 80]),
+  },
+
+  "femorale-supino": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "L'asciugamano tira: così controlli davvero l'intensità.",
+    pose: [v(supino, {
+      ginocchioV: [130, 86], piedeV: [148, 50],
+      manoV: [128, 74], gomitoV: [98, 96], manoL: [128, 74], gomitoL: [98, 96],
+    })],
+    accenti: () => freccia([160, 74], [152, 56]),
+  },
+
+  // ---------------- FLESSORI D'ANCA ----------------
+  "affondo-flessori": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Prima porta il coccige SOTTO, poi spingi avanti. Senza, non allunghi.",
+    pose: [
+      v(inPiedi, {
+        testa: [96, 46], collo: [96, 60], bacino: [96, 96],
+        spallaV: [96, 64], gomitoV: [98, 82], manoV: [100, 100],
+        spallaL: [96, 64], gomitoL: [98, 82], manoL: [100, 100],
+        ginocchioV: [132, 106], piedeV: [132, SUOLO],
+        ginocchioL: [66, SUOLO], piedeL: [42, 126],
+      }),
+      v(inPiedi, {
+        testa: [102, 46], collo: [102, 60], bacino: [104, 96],
+        spallaV: [102, 64], gomitoV: [104, 82], manoV: [106, 100],
+        spallaL: [102, 64], gomitoL: [104, 82], manoL: [106, 100],
+        ginocchioV: [138, 106], piedeV: [136, SUOLO],
+        ginocchioL: [66, SUOLO], piedeL: [42, 126],
+      }),
+    ],
+    accenti: () => freccia([96, 108], [96, 92]) + punto([104, 96]),
+  },
+
+  "couch-stretch": {
+    vista: "profilo", ambiente: "rialzo",
+    etichetta: "Busto eretto, coccige sotto. Si esagera facilissimo: 30-40%.",
+    pose: [v(inPiedi, {
+      testa: [96, 44], collo: [96, 58], bacino: [98, 96],
+      spallaV: [96, 62], gomitoV: [98, 80], manoV: [100, 98],
+      spallaL: [96, 62], gomitoL: [98, 80], manoL: [100, 98],
+      ginocchioV: [64, 118], piedeV: [56, SUOLO],
+      ginocchioL: [132, 116], piedeL: [162, 106],
+    })],
+    accenti: () => freccia([96, 108], [96, 92]),
+  },
+
+  "ginocchio-petto": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Il ginocchio sale e RESTA su, senza mani.",
+    pose: [
+      inPiedi,
+      v(inPiedi, { ginocchioV: [124, 82], piedeV: [110, 106] }),
+    ],
+    accenti: () => freccia([124, 104], [124, 84]),
+  },
+
+  "ponte-glutei": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Il bacino sale spinto dai glutei, non dalla schiena.",
+    pose: [
+      v(supino, { bacino: [104, 120], ginocchioV: [140, 100], piedeV: [146, SUOLO] }),
+      v(supino, { bacino: [104, 96], collo: [56, 116], ginocchioV: [142, 92], piedeV: [146, SUOLO] }),
+    ],
+    accenti: () => freccia([104, 118], [104, 92]) + punto([104, 100]),
+  },
+
+  // ---------------- ADDUTTORI E ROTATORI ----------------
+  "farfalla": {
+    vista: "fronte", ambiente: "suolo",
+    etichetta: "Piante unite. Le ginocchia scendono da sole, non spingerle.",
+    pose: [
+      v(inPiedi, {
+        testa: [100, 42], collo: [100, 56], bacino: [100, 100],
+        spallaV: [88, 62], gomitoV: [76, 84], manoV: [92, 106],
+        spallaL: [112, 62], gomitoL: [124, 84], manoL: [108, 106],
+        ginocchioV: [60, 108], piedeV: [100, 122],
+        ginocchioL: [140, 108], piedeL: [100, 122],
+      }),
+      v(inPiedi, {
+        testa: [100, 42], collo: [100, 56], bacino: [100, 100],
+        spallaV: [88, 62], gomitoV: [76, 84], manoV: [92, 106],
+        spallaL: [112, 62], gomitoL: [124, 84], manoL: [108, 106],
+        ginocchioV: [56, 118], piedeV: [100, 122],
+        ginocchioL: [144, 118], piedeL: [100, 122],
+      }),
+    ],
+    accenti: () => freccia([56, 100], [52, 120]) + freccia([144, 100], [148, 120]),
+  },
+
+  "frog-rock": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Ginocchia larghe. Il bacino va indietro verso i talloni.",
+    pose: [
+      quadrupedia,
+      v(quadrupedia, {
+        bacino: [104, 88], testa: [46, 82], collo: [58, 84],
+        ginocchioV: [132, 108], piedeV: [150, SUOLO],
+        ginocchioL: [132, 108], piedeL: [150, SUOLO],
+      }),
+    ],
+    accenti: () => freccia([146, 78], [112, 84]),
+  },
+
+  "novanta-novanta": {
+    vista: "fronte", ambiente: "suolo",
+    etichetta: "Una gamba davanti a 90°, l'altra di lato a 90°. Siedi dritto.",
+    pose: [v(seduto, {
+      testa: [92, 46], collo: [92, 60], bacino: [92, 104],
+      spallaV: [80, 66], gomitoV: [66, 86], manoV: [58, 108],
+      spallaL: [104, 66], gomitoL: [118, 86], manoL: [126, 108],
+      ginocchioV: [48, 112], piedeV: [56, SUOLO],
+      ginocchioL: [136, 110], piedeL: [166, 124],
+    })],
+    accenti: () => punto([48, 112]) + punto([136, 110]),
+  },
+
+  "hip-switch": {
+    vista: "fronte", ambiente: "suolo",
+    etichetta: "Passaggio attivo da un lato all'altro, senza usare le mani.",
+    pose: [
+      v(seduto, {
+        testa: [92, 46], collo: [92, 60], bacino: [92, 104],
+        spallaV: [80, 66], gomitoV: [66, 86], manoV: [58, 108],
+        spallaL: [104, 66], gomitoL: [118, 86], manoL: [126, 108],
+        ginocchioV: [48, 112], piedeV: [56, SUOLO],
+        ginocchioL: [136, 110], piedeL: [166, 124],
+      }),
+      v(seduto, {
+        testa: [108, 46], collo: [108, 60], bacino: [108, 104],
+        spallaV: [96, 66], gomitoV: [82, 86], manoV: [74, 108],
+        spallaL: [120, 66], gomitoL: [134, 86], manoL: [142, 108],
+        ginocchioV: [152, 112], piedeV: [144, SUOLO],
+        ginocchioL: [64, 110], piedeL: [34, 124],
+      }),
+    ],
+    accenti: () => freccia([72, 126], [128, 126]),
+  },
+
+  "figure-4": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Caviglia sopra il ginocchio opposto. Tiri la coscia verso il petto.",
+    pose: [v(supino, {
+      ginocchioV: [124, 86], piedeV: [104, 66],
+      ginocchioL: [138, 70], piedeL: [160, 84],
+      gomitoV: [104, 96], manoV: [124, 82], gomitoL: [104, 96], manoL: [124, 82],
+    })],
+    accenti: () => freccia([146, 96], [126, 78]) + punto([128, 78]),
+  },
+
+  "cossack": {
+    vista: "fronte", ambiente: "suolo",
+    etichetta: "Scendi su una gamba, l'altra resta TESA con la punta in su.",
+    pose: [
+      v(inPiedi, {
+        bacino: [100, 92], ginocchioV: [70, 112], piedeV: [66, SUOLO],
+        ginocchioL: [130, 112], piedeL: [134, SUOLO],
+      }),
+      v(inPiedi, {
+        testa: [76, 62], collo: [76, 76], bacino: [76, 108],
+        spallaV: [64, 82], gomitoV: [70, 100], manoV: [88, 104],
+        spallaL: [88, 82], gomitoL: [94, 100], manoL: [88, 104],
+        ginocchioV: [58, 120], piedeV: [58, SUOLO],
+        ginocchioL: [130, 122], piedeL: [166, SUOLO],
+      }),
+    ],
+    accenti: () => freccia([100, 84], [78, 104]) + punto([166, SUOLO]),
+  },
+
+  "affondo-laterale": {
+    vista: "fronte", ambiente: "suolo",
+    etichetta: "Scendi su un lato, la gamba opposta resta tesa.",
+    pose: [v(inPiedi, {
+      testa: [76, 62], collo: [76, 76], bacino: [76, 108],
+      spallaV: [64, 82], gomitoV: [70, 100], manoV: [88, 106],
+      spallaL: [88, 82], gomitoL: [94, 100], manoL: [88, 106],
+      ginocchioV: [58, 120], piedeV: [58, SUOLO],
+      ginocchioL: [130, 122], piedeL: [166, SUOLO],
+    })],
+    accenti: () => punto([166, SUOLO]),
+  },
+
+  "abduzione-laterale": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Sdraiato sul fianco, la gamba sopra sale lenta. Bacino fermo.",
+    pose: [
+      v(sulFianco, { ginocchioV: [140, 116], piedeV: [168, 124] }),
+      v(sulFianco, { ginocchioV: [138, 88], piedeV: [166, 78] }),
+    ],
+    accenti: () => freccia([170, 116], [170, 82]) + fisso([110, 110]),
+  },
+
+  // ---------------- GLUTEI / TFL ----------------
+  "tfl-in-piedi": {
+    vista: "fronte", ambiente: "suolo",
+    etichetta: "Gamba incrociata dietro, bacino spinto di lato, braccio lungo sopra.",
+    pose: [v(inPiedi, {
+      testa: [92, 30], collo: [94, 44], bacino: [112, 86],
+      spallaV: [82, 50], gomitoV: [72, 32], manoV: [70, 14],
+      spallaL: [106, 50], gomitoL: [112, 70], manoL: [116, 90],
+      ginocchioV: [110, 110], piedeV: [104, SUOLO],
+      ginocchioL: [122, 110], piedeL: [86, SUOLO],
+    })],
+    accenti: () => freccia([132, 86], [150, 86]) + punto([112, 86]),
+  },
+
+  "piriforme-seduto": {
+    vista: "fronte", ambiente: "sedia",
+    etichetta: "Caviglia sopra il ginocchio, il petto scende in avanti.",
+    pose: [v(seduto, {
+      testa: [86, 56], collo: [88, 70], bacino: [96, 106],
+      spallaV: [76, 76], gomitoV: [82, 96], manoV: [100, 104],
+      spallaL: [100, 76], gomitoL: [106, 96], manoL: [100, 104],
+      ginocchioV: [66, 108], piedeV: [116, 100],
+      ginocchioL: [124, 112], piedeL: [124, SUOLO],
+    })],
+    accenti: () => freccia([86, 48], [92, 74]) + punto([66, 108]),
+  },
+
+  // ---------------- QUADRICIPITI ----------------
+  "quad-in-piedi": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Tallone al gluteo, ginocchio che punta a TERRA, bacino sotto.",
+    pose: [v(inPiedi, {
+      ginocchioV: [104, 112], piedeV: [92, 88],
+      manoV: [98, 90], gomitoV: [100, 70],
+      ginocchioL: [96, 110], piedeL: [96, SUOLO],
+    })],
+    accenti: () => freccia([116, 100], [110, 118]) + punto([100, 84]),
+  },
+
+  "bulgaro": {
+    vista: "profilo", ambiente: "rialzo",
+    etichetta: "Piede dietro sul rialzo. Controllo in discesa, non profondità.",
+    pose: [
+      v(inPiedi, {
+        bacino: [96, 92], ginocchioV: [92, 112], piedeV: [88, SUOLO],
+        ginocchioL: [128, 112], piedeL: [156, 110],
+      }),
+      v(inPiedi, {
+        testa: [96, 46], collo: [96, 60], bacino: [96, 104],
+        ginocchioV: [86, 120], piedeV: [88, SUOLO],
+        ginocchioL: [134, 122], piedeL: [156, 110],
+      }),
+    ],
+    accenti: () => freccia([76, 96], [76, 116]),
+  },
+
+  // ---------------- TORACICA E SPALLE ----------------
+  "gran-dorsale": {
+    vista: "profilo", ambiente: "sedia",
+    etichetta: "Schiena ARROTONDATA: senza questo alleni gli estensori, non il bersaglio.",
+    pose: [v(quadrupedia, {
+      testa: [58, 96], collo: [70, 92], bacino: [116, 104],
+      spallaV: [74, 90], gomitoV: [104, 92], manoV: [140, 94],
+      spallaL: [74, 90], gomitoL: [104, 92], manoL: [140, 94],
+      ginocchioV: [120, 124], piedeV: [148, 126],
+      ginocchioL: [120, 124], piedeL: [148, 126],
+    })],
+    accenti: () => freccia([88, 74], [88, 92]) + punto([96, 96]),
+  },
+
+  "estensione-toracica": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Roller sotto le scapole. L'estensione parte da lì, non dalla lombare.",
+    pose: [
+      v(supino, {
+        testa: [46, 108], collo: [60, 108], bacino: [116, 120],
+        gomitoV: [58, 96], manoV: [46, 96], gomitoL: [58, 96], manoL: [46, 96],
+        ginocchioV: [142, 100], piedeV: [150, SUOLO],
+        ginocchioL: [142, 100], piedeL: [150, SUOLO],
+      }),
+      v(supino, {
+        testa: [44, 122], collo: [60, 116], bacino: [116, 120],
+        gomitoV: [56, 106], manoV: [44, 110], gomitoL: [56, 106], manoL: [44, 110],
+        ginocchioV: [142, 100], piedeV: [150, SUOLO],
+        ginocchioL: [142, 100], piedeL: [150, SUOLO],
+      }),
+    ],
+    accenti: () => `<circle class="acc__attrezzo" cx="82" cy="116" r="10"/>` + freccia([40, 96], [40, 116]),
+  },
+
+  "prone-liftoff": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Le braccia si staccano. Le costole restano giù: non inarcare.",
+    pose: [
+      v(supino, {
+        testa: [46, 124], collo: [60, 124], bacino: [116, 126],
+        spallaV: [62, 122], gomitoV: [36, 124], manoV: [14, 126],
+        spallaL: [62, 122], gomitoL: [36, 124], manoL: [14, 126],
+        ginocchioV: [146, 126], piedeV: [176, 128],
+        ginocchioL: [146, 126], piedeL: [176, 128],
+      }),
+      v(supino, {
+        testa: [46, 122], collo: [60, 122], bacino: [116, 126],
+        spallaV: [62, 120], gomitoV: [36, 112], manoV: [14, 106],
+        spallaL: [62, 120], gomitoL: [36, 112], manoL: [14, 106],
+        ginocchioV: [146, 126], piedeV: [176, 128],
+        ginocchioL: [146, 126], piedeL: [176, 128],
+      }),
+    ],
+    accenti: () => freccia([14, 124], [14, 104]) + fisso([104, 126]),
+  },
+
+  "wall-slide": {
+    vista: "fronte", ambiente: "muro",
+    etichetta: "Lombare piatta al muro. Se si stacca, sei salito troppo.",
+    pose: [
+      v(inPiedi, {
+        testa: [104, 34], collo: [104, 48], bacino: [104, 92],
+        spallaV: [88, 54], gomitoV: [70, 66], manoV: [64, 44],
+        spallaL: [120, 54], gomitoL: [138, 66], manoL: [144, 44],
+        ginocchioV: [100, 112], piedeV: [96, SUOLO],
+        ginocchioL: [110, 112], piedeL: [114, SUOLO],
+      }),
+      v(inPiedi, {
+        testa: [104, 34], collo: [104, 48], bacino: [104, 92],
+        spallaV: [88, 54], gomitoV: [76, 38], manoV: [72, 18],
+        spallaL: [120, 54], gomitoL: [132, 38], manoL: [136, 18],
+        ginocchioV: [100, 112], piedeV: [96, SUOLO],
+        ginocchioL: [110, 112], piedeL: [114, SUOLO],
+      }),
+    ],
+    accenti: () => freccia([158, 60], [158, 26]) + fisso([104, 86]),
+  },
+
+  "child-pose": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Seduto sui talloni, braccia lunghe, petto verso il pavimento.",
+    pose: [v(quadrupedia, {
+      testa: [54, 116], collo: [68, 112], bacino: [130, 110],
+      spallaV: [70, 110], gomitoV: [44, 116], manoV: [16, 122],
+      spallaL: [70, 110], gomitoL: [44, 116], manoL: [16, 122],
+      ginocchioV: [132, 124], piedeV: [158, 126],
+      ginocchioL: [132, 124], piedeL: [158, 126],
+    })],
+    accenti: () => freccia([90, 96], [90, 112]),
+  },
+
+  "pettorale-stipite": {
+    vista: "fronte", ambiente: "muro",
+    etichetta: "Gomito a 90° contro lo stipite, il busto ruota in avanti.",
+    pose: [v(inPiedi, {
+      testa: [110, 34], collo: [110, 48], bacino: [108, 90],
+      spallaV: [94, 54], gomitoV: [64, 54], manoV: [58, 30],
+      spallaL: [124, 54], gomitoL: [132, 74], manoL: [136, 94],
+      ginocchioV: [104, 112], piedeV: [100, SUOLO],
+      ginocchioL: [114, 112], piedeL: [118, SUOLO],
+    })],
+    accenti: () => freccia([120, 66], [140, 74]) + punto([80, 54]),
+  },
+
+  "rotazione-esterna-spalla": {
+    vista: "fronte", ambiente: null,
+    etichetta: "Gomito fermo al fianco, l'avambraccio ruota in fuori.",
+    pose: [
+      v(inPiedi, { spallaV: [86, 52], gomitoV: [82, 76], manoV: [108, 82] }),
+      v(inPiedi, { spallaV: [86, 52], gomitoV: [82, 76], manoV: [52, 74] }),
+    ],
+    accenti: () => freccia([106, 92], [58, 90]) + fisso([82, 76]),
+  },
+
+  "circonduzioni-bastone": {
+    vista: "fronte", ambiente: null,
+    etichetta: "Braccia sempre tese. Il bastone passa sopra e dietro la testa.",
+    pose: [
+      v(inPiedi, { spallaV: [86, 52], gomitoV: [70, 74], manoV: [56, 96], spallaL: [114, 52], gomitoL: [130, 74], manoL: [144, 96] }),
+      v(inPiedi, { spallaV: [86, 52], gomitoV: [70, 34], manoV: [56, 16], spallaL: [114, 52], gomitoL: [130, 34], manoL: [144, 16] }),
+    ],
+    accenti: () => `<path class="acc__attrezzo-linea" d="M52 96 H148"/>` + freccia([164, 92], [164, 30]),
+  },
+
+  "tricipite-overhead": {
+    vista: "fronte", ambiente: null,
+    etichetta: "Gomito in alto vicino all'orecchio, la mano scende dietro.",
+    pose: [v(inPiedi, {
+      spallaV: [88, 52], gomitoV: [92, 20], manoV: [112, 40],
+      spallaL: [112, 52], gomitoL: [108, 26], manoL: [96, 22],
+    })],
+    accenti: () => freccia([124, 30], [110, 44]) + fisso([92, 20]),
+  },
+
+  // ---------------- BACINO ----------------
+  "sidelying-gluteo": {
+    vista: "profilo", ambiente: "suolo",
+    etichetta: "Spinta dai due contatti del piede: tallone interno e alluce.",
+    pose: [
+      v(sulFianco, { ginocchioV: [132, 112], piedeV: [156, 126] }),
+      v(sulFianco, { ginocchioV: [134, 100], piedeV: [162, 112] }),
+    ],
+    accenti: () => punto([160, 118]) + freccia([172, 108], [172, 90]),
+  },
+
+  "allungo-sopra-testa": {
+    vista: "fronte", ambiente: "suolo",
+    etichetta: "Il braccio allunga in alto, il peso trasla sul tallone opposto.",
+    pose: [v(inPiedi, {
+      testa: [96, 34], collo: [98, 48], bacino: [106, 88],
+      spallaV: [86, 54], gomitoV: [76, 32], manoV: [70, 12],
+      spallaL: [110, 54], gomitoL: [116, 74], manoL: [120, 94],
+      ginocchioV: [102, 110], piedeV: [98, SUOLO],
+      ginocchioL: [112, 110], piedeL: [116, SUOLO],
+    })],
+    accenti: () => freccia([70, 30], [70, 12]) + punto([116, SUOLO]),
+  },
+
+  // fallback
+  "generica": {
+    vista: "fronte", ambiente: "suolo",
+    etichetta: "Segui i passi qui sotto.",
+    pose: [inPiedi],
+    accenti: () => "",
+  },
+};
+
+// ---------------------------------------------------------------------
+
 function renderAnimazione(chiave) {
-  const fn = ANIMAZIONI[chiave] || ANIMAZIONI["generica"];
-  return `<div class="anim-wrap anim-${chiave || "generica"}">${fn()}</div>`;
+  const a = ANIMAZIONI[chiave] || ANIMAZIONI["generica"];
+  const doppia = a.pose.length > 1;
+
+  const strati = a.pose
+    .map((p, i) => disegnaFigura(p, doppia ? `fig--fase${i}` : ""))
+    .join("");
+
+  return `<figure class="anim ${doppia ? "anim--doppia" : "anim--singola"}">
+    <svg viewBox="0 0 200 150" class="anim__svg" role="img" aria-label="${a.etichetta}">
+      ${ambiente(a.ambiente)}
+      ${strati}
+      ${a.accenti ? a.accenti() : ""}
+    </svg>
+    <figcaption class="anim__cap">${a.etichetta}</figcaption>
+  </figure>`;
 }
 
-function haAnimazione(chiave) {
-  return Boolean(ANIMAZIONI[chiave]);
-}
+const haAnimazione = (c) => Boolean(ANIMAZIONI[c]);
+const elencoAnimazioni = () => Object.keys(ANIMAZIONI);
 
-export { renderAnimazione, haAnimazione, ANIMAZIONI };
+export { renderAnimazione, haAnimazione, elencoAnimazioni, ANIMAZIONI };

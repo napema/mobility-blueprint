@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Revisione video</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .video-card { background: var(--sfondo-2); border: 0.5px solid var(--separatore); border-radius: var(--raggio); overflow: hidden; margin-bottom: 16px; }
+  .video-card iframe { width: 100%; aspect-ratio: 16/9; border: 0; display: block; }
+  .video-card__corpo { padding: 12px 16px 16px; }
+  .video-card__id { font-family: ui-monospace, monospace; font-size: 12px; color: var(--etichetta-2); }
+  .video-card__gruppo { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--blu); }
+  .senza-video { border-left: 3px solid var(--arancio); }
+  .colonne { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="app-header">
+    <div class="app-header__interno"><span class="app-header__title">Revisione video</span></div>
+  </header>
+  <main class="app-main" style="padding-bottom:40px">
+    <div style="max-width:1200px;margin-inline:auto">
+      <div class="vista-intestazione">
+        <h1 class="titolo-grande">Tutti i video</h1>
+        <p class="sottotitolo">Guardali in fila e dimmi quali scartare: sostituisco solo quelli.</p>
+      </div>
+
+      <div class="vetro scheda">
+        <p class="didascalia" style="margin:0 0 8px">
+          Ogni video è stato verificato con l'API di YouTube: esiste, e titolo e canale corrispondono all'esercizio.
+          <strong>Il contenuto no</strong> — non è possibile guardarli, quindi la qualità dell'esecuzione la giudichi tu.
+        </p>
+        <p class="didascalia" style="margin:0" id="conteggio"></p>
+      </div>
+
+      <div id="elenco"></div>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+import { GRUPPI, BACINO, CARICO } from "./js/esercizi.js";
+
+const elenco = document.getElementById("elenco");
+const tutti = [
+  ...Object.values(GRUPPI).map((g) => [g.nome, g.esercizi]),
+  [BACINO.nome, BACINO.esercizi],
+  [CARICO.nome, CARICO.esercizi],
+];
+
+let conVideo = 0, senzaVideo = 0;
+const sezioni = [];
+
+for (const [nomeGruppo, esercizi] of tutti) {
+  const schede = esercizi.map((ex) => {
+    if (ex.video) {
+      conVideo++;
+      return `<div class="video-card">
+        <iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/${ex.video}?rel=0&playsinline=1"
+                title="${ex.nome}" allowfullscreen></iframe>
+        <div class="video-card__corpo">
+          <div class="video-card__gruppo">${nomeGruppo}</div>
+          <div class="testata">${ex.nome}</div>
+          <div class="video-card__id">${ex.id} · ${ex.video}</div>
+        </div>
+      </div>`;
+    }
+    senzaVideo++;
+    return `<div class="video-card senza-video">
+      <div class="video-card__corpo">
+        <div class="video-card__gruppo">${nomeGruppo}</div>
+        <div class="testata">${ex.nome}</div>
+        <div class="didascalia" style="margin-top:4px">Nessun video verificato: usa lo schema disegnato.</div>
+        <div class="video-card__id">${ex.id}</div>
+      </div>
+    </div>`;
+  }).join("");
+  sezioni.push(`<h2 class="titolo-2" style="margin:24px 0 12px">${nomeGruppo}</h2><div class="colonne">${schede}</div>`);
+}
+
+elenco.innerHTML = sezioni.join("");
+document.getElementById("conteggio").innerHTML =
+  `<strong>${conVideo} esercizi con video verificato</strong> · ${senzaVideo} ancora senza (bordo arancione): per quelli non ho trovato un video che potessi verificare, e resta lo schema.`;
+</script>
+</body>
+</html>

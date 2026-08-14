@@ -699,67 +699,37 @@ body::before {
   height: auto;
   display: block;
   color: var(--etichetta);
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 3.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
-.anim__svg circle:not(.anim__punto):not(.anim__attrezzo) { fill: none; }
+/* Il corpo: tratto spesso e arrotondato, cosi' legge come un arto e non
+   come un filo. Il lato lontano e' piu' tenue: da' profondita' senza 3D. */
+.fig__arto { fill: none; stroke: currentColor; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+.fig__tronco { stroke-width: 13; }
+.fig__lontano { opacity: 0.42; }
+.fig__testa { fill: currentColor; stroke: none; }
+
+/* Flipbook: due pose complete che si alternano. Nessun pezzo si muove da
+   solo — cambia tutta la figura, come in un'illustrazione di esercizio. */
+@keyframes fase-a { 0%, 38% { opacity: 1 } 50%, 88% { opacity: 0 } 100% { opacity: 1 } }
+@keyframes fase-b { 0%, 38% { opacity: 0 } 50%, 88% { opacity: 1 } 100% { opacity: 0 } }
+
+.anim--doppia .fig--fase0 { animation: fase-a 3.4s ease-in-out infinite; }
+.anim--doppia .fig--fase1 { animation: fase-b 3.4s ease-in-out infinite; }
+
+.amb { stroke: var(--etichetta-3); stroke-width: 3; stroke-linecap: round; fill: none; }
+
+.acc__freccia { stroke: var(--blu); stroke-width: 3.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.acc__punto { fill: var(--blu); stroke: none; }
+.acc__fisso { stroke: var(--arancio); stroke-width: 3; fill: none; stroke-linecap: round; }
+.acc__attrezzo { fill: var(--riempimento); stroke: var(--etichetta-3); stroke-width: 2.5; }
+.acc__attrezzo-linea { stroke: var(--etichetta-2); stroke-width: 4; stroke-linecap: round; }
+
 .anim__cap { font-size: 13px; color: var(--etichetta-2); text-align: center; margin-top: 8px; line-height: 1.35; }
-.anim__vista, .anim__nota { font-size: 9px; fill: var(--etichetta-3); stroke: none; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
-.anim__nota { fill: var(--etichetta-2); }
-.anim__punto { fill: var(--blu); stroke: none; }
-.anim__punto-linea { stroke: var(--blu); stroke-width: 2.4; }
-.anim__fisso { stroke: var(--arancio); }
-.anim__muro, .anim__suolo { stroke: var(--etichetta-3); stroke-width: 2.4; }
-.anim__attrezzo { fill: var(--riempimento); stroke: var(--etichetta-3); stroke-width: 2; }
-.anim__leggero { stroke: var(--etichetta-3); stroke-width: 2.4; }
-.anim__tesa, .a-tesa { stroke: var(--blu); }
 
-/* movimenti: lenti, in loop, con ritorno — devono far capire la forma */
-@keyframes a-tilt      { 0%,12% { transform: rotate(0deg) }   55%,72% { transform: rotate(15deg) }  100% { transform: rotate(0deg) } }
-@keyframes a-chin      { 0%,15% { transform: translateX(0) }  55%,72% { transform: translateX(-7px) } 100% { transform: translateX(0) } }
-@keyframes a-ginocchio { 0%,12% { transform: translateX(0) }  55%,72% { transform: translateX(9px) } 100% { transform: translateX(0) } }
-@keyframes a-gamba-su  { 0%,10% { transform: rotate(0deg) }   55%,70% { transform: rotate(-42deg) } 100% { transform: rotate(0deg) } }
-@keyframes a-piega     { 0%,12% { transform: rotate(0deg) }   55%,72% { transform: rotate(17deg) }  100% { transform: rotate(0deg) } }
-@keyframes a-giu       { 0%,12% { transform: rotate(0deg) }   55%,75% { transform: rotate(6deg) }   100% { transform: rotate(0deg) } }
-@keyframes a-rock      { 0%,10% { transform: translateX(0) }  52%,68% { transform: translateX(-16px) } 100% { transform: translateX(0) } }
-@keyframes a-tira      { 0%,12% { transform: rotate(0deg) }   55%,72% { transform: rotate(-13deg) } 100% { transform: rotate(0deg) } }
-@keyframes a-abduce    { 0%,10% { transform: rotate(0deg) }   50%,66% { transform: rotate(-24deg) } 100% { transform: rotate(0deg) } }
-@keyframes a-bacino    { 0%,12% { transform: rotate(0deg) }   55%,74% { transform: rotate(-7deg) }  100% { transform: rotate(0deg) } }
-@keyframes a-ponte     { 0%,12% { transform: rotate(0deg) }   52%,70% { transform: rotate(-13deg) } 100% { transform: rotate(0deg) } }
-@keyframes a-braccia   { 0%,10% { transform: translateY(0) }  52%,68% { transform: translateY(-16px) } 100% { transform: translateY(0) } }
-@keyframes a-stacco    { 0%,14% { transform: translateY(0) }  55%,72% { transform: translateY(-11px) } 100% { transform: translateY(0) } }
-@keyframes a-estende   { 0%,12% { transform: rotate(0deg) }   55%,72% { transform: rotate(9deg) }   100% { transform: rotate(0deg) } }
-@keyframes a-scende    { 0%,12% { transform: translateY(0) }  55%,72% { transform: translateY(9px) } 100% { transform: translateY(0) } }
-@keyframes a-fuori     { 0%,15% { transform: scaleX(1) }      55%,75% { transform: scaleX(1.12) }   100% { transform: scaleX(1) } }
-@keyframes a-cossack   { 0%,12% { transform: translateY(0) }  55%,72% { transform: translateY(7px) } 100% { transform: translateY(0) } }
-@keyframes a-spinta    { 0%,20% { transform: translateX(0) }  55%,70% { transform: translateX(4px) } 100% { transform: translateX(0) } }
-@keyframes a-allunga   { 0%,12% { transform: rotate(0deg) }   55%,72% { transform: rotate(-9deg) }  100% { transform: rotate(0deg) } }
-@keyframes a-pulsa     { 0%,100% { opacity: 1; r: 3.6 } 50% { opacity: .45; r: 5.2 } }
-
-.a-collo-tilt    { animation: a-tilt 4s ease-in-out infinite; transform-origin: 60px 52px; }
-.a-chin          { animation: a-chin 4s ease-in-out infinite; }
-.a-ginocchio     { animation: a-ginocchio 4s ease-in-out infinite; }
-.a-gamba-su      { animation: a-gamba-su 4.4s ease-in-out infinite; transform-origin: 84px 90px; }
-.a-piega         { animation: a-piega 4.4s ease-in-out infinite; transform-origin: 40px 100px; }
-.a-ginocchia-giu { animation: a-giu 4.4s ease-in-out infinite; transform-origin: 60px 62px; }
-.a-rock          { animation: a-rock 4.4s ease-in-out infinite; }
-.a-tira          { animation: a-tira 4.4s ease-in-out infinite; transform-origin: 70px 96px; }
-.a-abduce        { animation: a-abduce 4s ease-in-out infinite; transform-origin: 76px 90px; }
-.a-bacino        { animation: a-bacino 4.4s ease-in-out infinite; transform-origin: 56px 66px; }
-.a-ponte         { animation: a-ponte 4s ease-in-out infinite; transform-origin: 34px 96px; }
-.a-braccia-su    { animation: a-braccia 4.2s ease-in-out infinite; }
-.a-braccia-stacco{ animation: a-stacco 4s ease-in-out infinite; }
-.a-estende       { animation: a-estende 4.4s ease-in-out infinite; transform-origin: 86px 76px; }
-.a-scende        { animation: a-scende 4.4s ease-in-out infinite; }
-.a-spinge-fuori  { animation: a-fuori 4.4s ease-in-out infinite; transform-origin: 60px 58px; }
-.a-cossack       { animation: a-cossack 4.4s ease-in-out infinite; }
-.a-spinta, .a-spinta-piede { animation: a-spinta 3s ease-in-out infinite; }
-.a-allunga       { animation: a-allunga 4.4s ease-in-out infinite; transform-origin: 60px 50px; }
-.a-pulsa         { animation: a-pulsa 2.4s ease-in-out infinite; }
+/* contact sheet di anteprima */
+.griglia-anim { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.griglia-anim > div { background: var(--sfondo-2); border: 0.5px solid var(--separatore); border-radius: var(--raggio); padding: 12px; }
+.griglia-anim h3 { font-size: 13px; margin: 0 0 8px; color: var(--blu); font-family: ui-monospace, monospace; }
 
 /* ====================== SESSIONE: comandi sempre in cima ====================== */
 

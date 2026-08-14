@@ -12,8 +12,8 @@ import { FollowAlongEngine } from "./engine.js";
 import { icona } from "./icone.js";
 import { renderAnimazione } from "./animazioni.js";
 import {
-  GRUPPI, G1, BACINO, TIPI_SESSIONE, DISTRETTI_PALESTRA,
-  DURATA_STD, gruppiAttiviPerSettimana, fasePerSettimana,
+  GRUPPI, G1, BACINO, CARICO, TIPI_SESSIONE, DISTRETTI_PALESTRA,
+  DURATA_STD, gruppiAttiviPerSettimana, fasePerSettimana, caricoSuggerito,
 } from "./esercizi.js";
 
 const PREP_PRIMA_VOLTA_SEC = 12;
@@ -145,16 +145,41 @@ function costruisciQuotidiana(state) {
   return passi;
 }
 
+// POST-CORSA. Tre vincoli dai paper, che prima non rispettavo:
+//
+// 1. Volume RIDOTTO. La Scala (§9) dice che lo stretching intenso apre i
+//    canali del calcio e attiva le calpaine: è biochimicamente identico
+//    all'allenamento. Sommarlo a fine corsa richiede "riduzione del
+//    volume", non la stessa dose della quotidiana. Prima ne mettevo 25
+//    di esercizi: era una seconda sessione, non un defaticamento.
+// 2. UN solo esercizio per gruppo, quelli che la corsa accorcia davvero.
+// 3. Ordine dal basso verso l'alto (§8 PROGRAMMA-v2): il sangue e il
+//    calore sono distali, si parte da lì.
+//
+// Il collo resta perché è l'obiettivo dichiarato e al 30-40% non affatica.
 function costruisciPostCorsa(state) {
-  const tipo = TIPI_SESSIONE["post-corsa"];
   const stretto = latoStretto(state);
   const passi = [];
-  for (const idG of tipo.ordine) {
+
+  // un esercizio per gruppo, scelto per pertinenza alla corsa
+  const scelte = [
+    ["G2", "g2-gastro"],   // polpaccio: il primo ad accorciarsi
+    ["G2", "g2-soleo"],    // bersaglio diverso, protettivo sugli shin splints
+    ["G4", "g4-affondo"],  // flessori: il gruppo che la corsa accorcia di piu'
+    ["G3", "g3-femorale-piedi"],
+    ["G6", "g6-tfl"],      // TFL/gluteo destro: filtro bandelletta
+    ["G5", "g5-figure4"],
+  ];
+
+  for (const [idG, idEx] of scelte) {
     const gruppo = GRUPPI[idG];
-    const soloS = gruppo.esercizi.filter((e) => e.tag === "S");
-    for (const ex of soloS.slice(0, 2)) passi.push(...espandi(ex, gruppo, stretto));
+    const ex = gruppo.esercizi.find((e) => e.id === idEx);
+    if (ex) passi.push(...espandi(ex, gruppo, stretto));
   }
-  for (const ex of collo(2)) passi.push(...espandi(ex, G1, stretto));
+
+  // collo ridotto: allungamento + isometria, niente di piu'
+  passi.push(...espandi(G1.esercizi[0], G1, stretto));
+  passi.push(...espandi(G1.esercizi[3], G1, stretto));
   return passi;
 }
 
@@ -170,13 +195,22 @@ function costruisciPostPalestra(state, distretto = "gambe") {
   return passi;
 }
 
+// MOBILITY = end-range sotto carico, in palestra. È la zona "fortemente
+// resistita" della Scala: rinforza il pavimento del range mentre lo
+// stretching ne alza il soffitto.
 function costruisciMobility(state) {
   const stretto = latoStretto(state);
+  const settimana = settimanaCorrente(state);
   const passi = [];
-  for (const idG of ["G5", "G3", "G2", "G8"]) {
-    const gruppo = GRUPPI[idG];
-    const soloM = gruppo.esercizi.filter((e) => e.tag === "M");
-    for (const ex of soloM) passi.push(...espandi(ex, gruppo, stretto));
+
+  for (const ex of CARICO.esercizi) {
+    const kg = caricoSuggerito(ex, settimana);
+    const generati = espandi(ex, CARICO, stretto);
+    for (const p of generati) {
+      p.carico = kg;
+      p.durataSec = ex.durataSec || 45;
+    }
+    passi.push(...generati);
   }
   return passi;
 }
@@ -341,6 +375,7 @@ function aggiornaStep(container, step, totale) {
   const chip = [];
   chip.push(`<span class="pillola ${d.tag === "M" ? "is-verde" : "is-blu"}">${d.tag === "M" ? "Mobility · attivo" : "Stretching · passivo"}</span>`);
   if (d.lato) chip.push(`<span class="pillola is-blu">Lato ${nomeLato(d.lato)}${d.extra ? " · extra" : ""}</span>`);
+  if (d.carico != null && d.carico > 0) chip.push(`<span class="pillola is-arancio">${d.carico} kg</span>`);
   if (d.ripetizioni) chip.push(`<span class="pillola is-arancio">${d.ripetizioni}</span>`);
   if (d.serve) chip.push(`<span class="pillola">${d.serve}</span>`);
   for (const m of d.muscoli || []) chip.push(`<span class="pillola">${m}</span>`);
@@ -360,15 +395,17 @@ function aggiornaStep(container, step, totale) {
 
   if (mediaMontato !== chiaveMedia) {
     if (d.video) {
+      // Il video comanda: parte da solo (muto, come impongono i browser)
+      // e va in loop. L'animazione non si mostra: dove c'è il video vero
+      // uno schema affiancato è solo rumore.
       media.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${d.video}?autoplay=1&mute=1&loop=1&playlist=${d.video}&rel=0&playsinline=1&controls=1"
         title="${d.nome}" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
-      extra.hidden = false;
-      extra.innerHTML = renderAnimazione(d.animazione);
     } else {
+      // Nessun video verificabile per questo esercizio: ripiego sullo schema.
       media.innerHTML = renderAnimazione(d.animazione);
-      extra.hidden = true;
-      extra.innerHTML = "";
     }
+    extra.hidden = true;
+    extra.innerHTML = "";
     mediaMontato = chiaveMedia;
   }
 
