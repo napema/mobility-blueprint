@@ -13,6 +13,13 @@
   box-sizing: border-box;
 }
 
+/* L'attributo hidden deve battere qualsiasi display impostato qui sotto
+   (.view-overlay e .lat-video usano display:flex e senza questa regola
+   resterebbero visibili anche da nascosti). */
+[hidden] {
+  display: none !important;
+}
+
 html, body {
   height: 100%;
   margin: 0;

@@ -1,7 +1,7 @@
 // sw.js — cache dell'app shell per l'uso offline (la sessione serale non può
 // dipendere dalla rete). Cache-first con fallback di rete, versionata a mano.
 
-const CACHE_NAME = "mobilita-shell-v2";
+const CACHE_NAME = "mobilita-shell-v3";
 
 const APP_SHELL = [
   "./",
@@ -39,19 +39,22 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// Network-first con fallback sulla cache: online si prende sempre la
+// versione aggiornata (con cache-first una correzione non arriverebbe mai
+// senza svuotare la cache a mano), offline si serve l'ultima copia buona.
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  if (new URL(event.request.url).origin !== self.location.origin) return;
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
-        .then((risposta) => {
+    fetch(event.request)
+      .then((risposta) => {
+        if (risposta.ok) {
           const clone = risposta.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return risposta;
-        })
-        .catch(() => cached);
-    })
+        }
+        return risposta;
+      })
+      .catch(() => caches.match(event.request).then((cached) => cached ?? caches.match("./index.html")))
   );
 });
