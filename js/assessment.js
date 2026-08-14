@@ -95,7 +95,10 @@ function mostraParte(container, nome) {
   });
   // Ogni parte si ridisegna con lo stato più recente ogni volta che viene
   // mostrata: la Parte 3 dipende dal risultato del Test 1 (vedi pike).
-  RENDER_PARTE[nome](container.querySelector(`[data-parte="${nome}"]`));
+  // Il selettore va vincolato a .assess-part: anche i pulsanti delle tab
+  // portano data-parte e nel DOM vengono prima, quindi un [data-parte]
+  // generico finirebbe per disegnare il pannello dentro il pulsante.
+  RENDER_PARTE[nome](container.querySelector(`.assess-part[data-parte="${nome}"]`));
 }
 
 // ===================== PARTE 1 — muscolo o nervo =====================

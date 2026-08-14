@@ -1,18 +1,19 @@
-// sessione.js — costruisce e guida la sessione serale (RESET + MICRO):
-// risolve i lati dal verdetto dell'assessment, applica le regole del
-// Blocco 0 (volume ridotto, video la prima volta, avviso collo una
-// tantum), guida il FollowAlongEngine e registra il risultato (storico,
-// streak, avanzamento/ripetizione della settimana).
+// sessione.js — costruisce e guida la sessione serale (RESET + MICRO).
+// Risolve i lati dal verdetto dell'assessment, applica le regole del
+// Blocco 0, guida il FollowAlongEngine e registra il risultato: storico,
+// streak, volume per gruppo muscolare, avanzamento della settimana.
 //
-// Ogni esercizio è preceduto da una fase di PREPARAZIONE: dice cosa
-// serve, mostra il video dentro l'app (mai una scheda esterna) e dà il
-// tempo di mettersi in posizione. La tenuta vera parte con doppio beep e
-// schermata diversa, così è sempre chiaro quando si comincia davvero.
+// Ogni esercizio ha una PREPARAZIONE (cosa serve, video, passi, tempo per
+// mettersi in posizione) e una TENUTA. Il video resta visibile anche
+// durante la tenuta e non viene rimontato tra le due fasi, così non
+// riparte da capo.
 
 import { getState, updateState } from "./storage.js";
 import { FollowAlongEngine } from "./engine.js";
+import { icona } from "./icone.js";
 import {
   NOTA_ATTREZZI,
+  NOTA_RESPIRO,
   RESET_GRUPPO_A,
   RESET_GRUPPO_B,
   RESET_DURATA_SERIE_SEC,
@@ -22,10 +23,11 @@ import {
   MODULI_MICRO_BLOCCO_0,
 } from "./esercizi.js";
 
-const PREP_PRIMA_VOLTA_SEC = 15; // c'è il video da guardare
-const PREP_RIPETIZIONE_SEC = 6;  // solo per riposizionarsi
+const PREP_PRIMA_VOLTA_SEC = 15;
+const PREP_RIPETIZIONE_SEC = 6;
 
 let engineAttivo = null;
+let videoMontato = null; // id del video attualmente nell'iframe
 
 // ===================== date (locali, senza fuso UTC) =====================
 
@@ -45,25 +47,18 @@ function addGiorni(iso, n) {
 function giorniTra(aISO, bISO) {
   const [ay, am, ad] = aISO.split("-").map(Number);
   const [by, bm, bd] = bISO.split("-").map(Number);
-  const diff = new Date(by, bm - 1, bd) - new Date(ay, am - 1, ad);
-  return Math.round(diff / 86400000);
+  return Math.round((new Date(by, bm - 1, bd) - new Date(ay, am - 1, ad)) / 86400000);
 }
 
 // ===================== risoluzione lati =====================
 
-function altroLato(lato) {
-  return lato === "sx" ? "dx" : "sx";
-}
-
-function nomeLato(lato) {
-  return lato === "dx" ? "DESTRO" : "SINISTRO";
-}
+function altroLato(lato) { return lato === "sx" ? "dx" : "sx"; }
+function nomeLato(lato) { return lato === "dx" ? "Destro" : "Sinistro"; }
 
 function calcolaLatoStrettoFarfalla(state) {
   const m = state.assessment.baselineTest3.bersagli.farfalla.misure;
   if (m.altezzaGinocchioSxCm === null || m.altezzaGinocchioDxCm === null) return null;
   if (m.altezzaGinocchioSxCm === m.altezzaGinocchioDxCm) return null;
-  // più distanza da terra = meno rotazione esterna = lato più stretto
   return m.altezzaGinocchioSxCm > m.altezzaGinocchioDxCm ? "sx" : "dx";
 }
 
@@ -72,8 +67,10 @@ function calcolaLatoStrettoFarfalla(state) {
 function generaPassiMicro(modulo, ex, latoStretto) {
   const base = {
     fase: "micro", modulo: modulo.id, moduloTitolo: modulo.titolo,
-    nome: ex.nome, istruzioni: ex.istruzioni, gruppoMuscolare: ex.gruppoMuscolare,
-    serve: ex.serve, video: null,
+    nome: ex.nome, istruzioni: ex.istruzioni, passi: ex.passi,
+    gruppoMuscolare: ex.gruppoMuscolare, muscoli: ex.muscoli,
+    serve: ex.serve, video: null, videoDecide: false,
+    avviso: modulo.id === "M5" ? modulo.avviso : null,
   };
 
   if (modulo.id === "M5") {
@@ -82,7 +79,7 @@ function generaPassiMicro(modulo, ex, latoStretto) {
     for (let v = 1; v <= ex.volte; v++) {
       passi.push({
         ...base, lato,
-        badge: `${modulo.titolo} · ${ex.fase === "allungamento" ? "allungamento" : "rinforzo"}${ex.volte > 1 ? ` ${v}/${ex.volte}` : ""}`,
+        badge: `${modulo.titolo} · ${ex.fase}${ex.volte > 1 ? ` ${v}/${ex.volte}` : ""}`,
         durataSec: MICRO_DURATA_SEC,
       });
     }
@@ -105,7 +102,7 @@ function generaPassiMicro(modulo, ex, latoStretto) {
     { ...base, lato: "dx", badge: `${modulo.titolo} · destro`, durataSec: MICRO_DURATA_SEC },
   ];
   if (ex.extraLatoStretto && latoStretto) {
-    passi.push({ ...base, lato: latoStretto, badge: `${modulo.titolo} · extra sul lato stretto`, durataSec: MICRO_DURATA_SEC });
+    passi.push({ ...base, lato: latoStretto, badge: `${modulo.titolo} · extra lato stretto`, durataSec: MICRO_DURATA_SEC });
   }
   return passi;
 }
@@ -118,7 +115,6 @@ function costruisciPassiLavoro(state) {
   const risolvi = (ruolo) => (ruolo === "lat" ? lat : away);
   const blocco = state.programma.blocco;
   const serieReset = blocco === 0 ? 1 : 2;
-
   const passi = [];
 
   for (const gruppo of [RESET_GRUPPO_A, RESET_GRUPPO_B]) {
@@ -126,10 +122,13 @@ function costruisciPassiLavoro(state) {
       const latoLavoro = risolvi(ex.lavoraLato);
       for (let s = 1; s <= serieReset; s++) {
         passi.push({
-          fase: "reset", gruppo: gruppo.sigla, sigla: ex.sigla, nome: ex.nome, video: ex.video,
-          lato: latoLavoro, serve: ex.serve,
-          istruzioni: ex.istruzioni, gruppoMuscolare: ex.gruppoMuscolare,
+          fase: "reset", gruppo: gruppo.sigla, sigla: ex.sigla, nome: ex.nome,
+          video: ex.video, videoDecide: !!ex.videoDecide,
+          lato: latoLavoro, serve: ex.serve, muscoli: ex.muscoli,
+          istruzioni: ex.istruzioni, passi: ex.passi,
+          gruppoMuscolare: ex.gruppoMuscolare,
           badge: `Gruppo ${gruppo.sigla} · serie ${s} di ${serieReset}`,
+          nota: NOTA_RESPIRO,
           durataSec: RESET_DURATA_SERIE_SEC,
         });
       }
@@ -147,9 +146,20 @@ function costruisciPassiLavoro(state) {
   return { errore: null, passi };
 }
 
-// Intercala una fase di preparazione prima di ogni tenuta. La prima volta
-// che un esercizio compare nella sessione la preparazione è più lunga e
-// mostra il video; le volte successive serve solo a riposizionarsi.
+// Riepilogo per la schermata Oggi: cosa si tocca stasera, muscolo per muscolo.
+function riepilogoModuli(passi) {
+  const mappa = new Map();
+  for (const p of passi) {
+    const chiave = p.fase === "reset" ? "reset" : p.modulo;
+    const nome = p.fase === "reset" ? "RESET · bacino e respiro" : `${p.modulo} · ${p.moduloTitolo}`;
+    if (!mappa.has(chiave)) mappa.set(chiave, { nome, muscoli: new Set(), durataSec: 0 });
+    const voce = mappa.get(chiave);
+    voce.durataSec += p.durataSec;
+    for (const m of p.muscoli || []) voce.muscoli.add(m);
+  }
+  return [...mappa.values()].map((v) => ({ ...v, muscoli: [...v.muscoli] }));
+}
+
 function conPreparazione(passiLavoro, videoGiaVisti) {
   const vistiInSessione = new Set();
   const risultato = [];
@@ -163,16 +173,11 @@ function conPreparazione(passiLavoro, videoGiaVisti) {
     numero += 1;
 
     risultato.push({
-      tipo: "prep",
-      rif: { ...p, numero },
-      mostraVideo: primaInSessione && !!p.video,
-      videoMaiVisto,
-      beep: "inizio",
+      tipo: "prep", rif: { ...p, numero }, chiave, videoMaiVisto, beep: "inizio",
       durataSec: (primaInSessione && videoMaiVisto) ? PREP_PRIMA_VOLTA_SEC : PREP_RIPETIZIONE_SEC,
     });
     risultato.push({ ...p, tipo: "lavoro", numero, beep: "fine" });
   }
-
   return risultato;
 }
 
@@ -183,14 +188,13 @@ function renderSessione(container) {
   const { errore, passi } = costruisciPassiLavoro(state);
 
   if (errore === "assessment-incompleto") {
-    container.innerHTML = `<p class="view-placeholder">Completa prima l'assessment (Impostazioni → Rifai assessment): la sessione di stasera dipende dal risultato del Test 2.</p>`;
+    container.innerHTML = `<p class="view-placeholder">Completa prima l'assessment: la sessione dipende dal risultato del Test 2.</p>`;
     document.getElementById("sessione-progress").textContent = "";
     nascondiControlli();
     return;
   }
 
-  const serveAvvisoCollo = !state.programma.avvisoColloMostrato && passi.some((p) => p.modulo === "M5");
-  if (serveAvvisoCollo) {
+  if (!state.programma.avvisoColloMostrato && passi.some((p) => p.modulo === "M5")) {
     mostraAvvisoCollo(container, passi);
   } else {
     avviaMotore(container, passi);
@@ -203,9 +207,9 @@ function mostraAvvisoCollo(container, passi) {
   container.innerHTML = `
     <div class="sess-centro">
       <div class="sess-gate">
-        <h2>Prima del modulo collo</h2>
-        <p>${MODULO_M5.avviso}</p>
-        <p class="sess-nota">Intensità ${MODULO_M5.intensitaMax}. Questo avviso compare una sola volta.</p>
+        <h2 class="titolo-2">Prima del modulo collo</h2>
+        <div class="sess-avviso">${icona("avviso", 20)}<span>${MODULO_M5.avviso}</span></div>
+        <p class="didascalia">Intensità ${MODULO_M5.intensitaMax}. Questo avviso compare una sola volta.</p>
         <button class="btn btn-primary" id="btn-gate-continua">Ho capito, continua</button>
       </div>
     </div>
@@ -221,20 +225,32 @@ function avviaMotore(container, passiLavoro) {
   const videoGiaVisti = state.programma.videoVistiObbligatori || [];
   const totaleEsercizi = passiLavoro.length;
   const passi = conPreparazione(passiLavoro, videoGiaVisti);
+  videoMontato = null;
 
   container.innerHTML = `
     <div class="sess-centro">
       <div class="sess-schermo" id="sess-schermo">
-        <div class="sess-tempo-totale" id="sess-tempo-totale"></div>
-        <div class="sess-badge" id="sess-badge"></div>
-        <h2 class="sess-titolo" id="sess-titolo"></h2>
-        <div class="sess-lato" id="sess-lato" hidden></div>
-        <div class="sess-countdown" id="sess-countdown">--</div>
-        <div class="sess-stato" id="sess-stato"></div>
-        <div class="sess-serve" id="sess-serve" hidden></div>
-        <p class="sess-istruzioni" id="sess-istruzioni"></p>
+        <div class="sess-anello"><div class="sess-anello__pieno" id="sess-avanzamento"></div></div>
+
         <div class="sess-video" id="sess-video" hidden></div>
-        <button class="btn btn-secondary sess-avanti" id="btn-avanti">Sono pronto ›</button>
+
+        <div class="sess-cronometro">
+          <div class="sess-countdown" id="sess-countdown">--</div>
+          <div class="sess-stato" id="sess-stato"></div>
+        </div>
+
+        <div>
+          <div class="occhiello" id="sess-badge" style="margin-bottom:4px"></div>
+          <h2 class="titolo-2" id="sess-titolo"></h2>
+          <div class="sess-chip-riga" id="sess-chip" style="margin-top:8px"></div>
+        </div>
+
+        <div class="vetro scheda" style="margin:0">
+          <ol class="sess-passi" id="sess-passi"></ol>
+          <p class="didascalia" id="sess-nota" style="margin-top:8px" hidden></p>
+        </div>
+
+        <button class="btn btn-primary" id="btn-avanti"></button>
       </div>
     </div>
   `;
@@ -244,7 +260,7 @@ function avviaMotore(container, passiLavoro) {
   });
 
   engineAttivo = new FollowAlongEngine({
-    onTick: (secondiResidui) => aggiornaCountdown(container, secondiResidui),
+    onTick: (residui) => aggiornaCountdown(container, residui),
     onStepChange: (step) => aggiornaStep(container, step, totaleEsercizi),
     onFine: () => completaSessione(container, passiLavoro),
   });
@@ -256,114 +272,122 @@ function avviaMotore(container, passiLavoro) {
 }
 
 function aggiornaStep(container, step, totaleEsercizi) {
-  const schermo = container.querySelector("#sess-schermo");
   const dati = step.tipo === "prep" ? step.rif : step;
-  const inPreparazione = step.tipo === "prep";
+  const inPrep = step.tipo === "prep";
+  const schermo = container.querySelector("#sess-schermo");
 
-  schermo.classList.toggle("is-prep", inPreparazione);
-  schermo.classList.toggle("is-lavoro", !inPreparazione);
+  schermo.classList.toggle("is-prep", inPrep);
+  schermo.classList.toggle("is-lavoro", !inPrep);
 
-  document.getElementById("sessione-progress").textContent =
-    `Esercizio ${dati.numero} di ${totaleEsercizi}`;
-
+  document.getElementById("sessione-progress").textContent = `${dati.numero} di ${totaleEsercizi}`;
   container.querySelector("#sess-badge").textContent = dati.badge;
   container.querySelector("#sess-titolo").textContent = dati.nome;
+  container.querySelector("#sess-stato").textContent = inPrep ? "Preparati" : "Tieni la posizione";
+  container.querySelector("#btn-avanti").textContent = inPrep ? "Sono pronto" : "Avanti";
 
-  const lato = container.querySelector("#sess-lato");
-  lato.hidden = !dati.lato;
-  if (dati.lato) lato.textContent = `Lato ${nomeLato(dati.lato)}`;
+  // chip: lato, attrezzatura, muscoli
+  const chip = [];
+  if (dati.lato) chip.push(`<span class="pillola is-blu">Lato ${nomeLato(dati.lato)}</span>`);
+  if (dati.serve) chip.push(`<span class="pillola">${dati.serve}</span>`);
+  for (const m of dati.muscoli || []) chip.push(`<span class="pillola">${m}</span>`);
+  container.querySelector("#sess-chip").innerHTML = chip.join("");
 
-  container.querySelector("#sess-stato").textContent = inPreparazione ? "Preparati" : "Tieni";
-  container.querySelector("#sess-istruzioni").textContent = dati.istruzioni;
+  // passi numerati
+  container.querySelector("#sess-passi").innerHTML =
+    (dati.passi || []).map((t) => `<li>${t}</li>`).join("");
 
-  const serve = container.querySelector("#sess-serve");
-  serve.hidden = !(inPreparazione && dati.serve);
-  if (!serve.hidden) serve.textContent = `Ti serve: ${dati.serve}`;
+  const nota = container.querySelector("#sess-nota");
+  const testoNota = dati.video ? `${dati.nota ? dati.nota + " " : ""}${NOTA_ATTREZZI}` : dati.nota;
+  nota.hidden = !testoNota;
+  if (testoNota) nota.textContent = testoNota;
 
-  const avanti = container.querySelector("#btn-avanti");
-  avanti.textContent = inPreparazione ? "Sono pronto ›" : "Avanti ›";
-
-  const video = container.querySelector("#sess-video");
-  if (inPreparazione && step.mostraVideo) {
-    video.hidden = false;
-    video.innerHTML = `
-      <iframe src="https://www.youtube-nocookie.com/embed/${dati.video}?rel=0&playsinline=1"
-              title="${dati.nome}" allowfullscreen loading="lazy"></iframe>
-      <p class="sess-nota">${NOTA_ATTREZZI}</p>
-    `;
-    if (step.videoMaiVisto) {
-      const chiave = dati.sigla || dati.nome;
+  // Video: resta montato anche durante la tenuta e non riparte da capo
+  // quando si passa da preparazione a tenuta dello stesso esercizio.
+  const contenitore = container.querySelector("#sess-video");
+  if (dati.video) {
+    contenitore.hidden = false;
+    if (videoMontato !== dati.video) {
+      contenitore.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${dati.video}?rel=0&playsinline=1&loop=1&playlist=${dati.video}"
+        title="${dati.nome}" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>`;
+      videoMontato = dati.video;
+    }
+    if (inPrep && step.videoMaiVisto) {
       updateState((s) => {
         s.programma.videoVistiObbligatori = s.programma.videoVistiObbligatori || [];
-        if (!s.programma.videoVistiObbligatori.includes(chiave)) {
-          s.programma.videoVistiObbligatori.push(chiave);
+        if (!s.programma.videoVistiObbligatori.includes(step.chiave)) {
+          s.programma.videoVistiObbligatori.push(step.chiave);
         }
       });
     }
   } else {
-    video.hidden = true;
-    video.innerHTML = ""; // scarica l'iframe: non deve continuare a suonare sotto
+    contenitore.hidden = true;
+    contenitore.innerHTML = "";
+    videoMontato = null;
   }
 
-  aggiornaTempoTotale(container);
+  aggiornaAvanzamento(container);
 }
 
-function aggiornaCountdown(container, secondiResidui) {
+function aggiornaCountdown(container, residui) {
   const el = container.querySelector("#sess-countdown");
-  if (el) el.textContent = Math.max(secondiResidui, 0);
-  aggiornaTempoTotale(container);
+  if (el) el.textContent = Math.max(residui, 0);
+  aggiornaAvanzamento(container);
 }
 
-function aggiornaTempoTotale(container) {
-  const el = container.querySelector("#sess-tempo-totale");
-  if (!el || !engineAttivo) return;
+function aggiornaAvanzamento(container) {
+  const barra = container.querySelector("#sess-avanzamento");
+  if (!barra || !engineAttivo) return;
+  const totale = engineAttivo.steps.reduce((t, s) => t + s.durataSec, 0);
   const restanti = engineAttivo.steps
     .slice(engineAttivo.indiceCorrente + 1)
-    .reduce((tot, s) => tot + s.durataSec, 0);
-  const totale = restanti + Math.max(engineAttivo.secondiResidui, 0);
-  const min = Math.floor(totale / 60);
-  const sec = String(totale % 60).padStart(2, "0");
-  el.textContent = `Mancano ${min}:${sec}`;
+    .reduce((t, s) => t + s.durataSec, 0) + Math.max(engineAttivo.secondiResidui, 0);
+  const percentuale = totale === 0 ? 0 : ((totale - restanti) / totale) * 100;
+  barra.parentElement.style.setProperty("--p", percentuale.toFixed(1));
 }
 
-// ===================== fine sessione e avanzamento =====================
+// ===================== fine sessione =====================
 
 function completaSessione(container, passiLavoro) {
-  const durataTotale = passiLavoro.reduce((tot, p) => tot + p.durataSec, 0);
+  const durataTotale = passiLavoro.reduce((t, p) => t + p.durataSec, 0);
   const oggi = oggiISO();
+
+  // volume per gruppo muscolare: serve alla soglia dei 5 minuti a settimana
+  const volume = {};
+  for (const p of passiLavoro) {
+    if (!p.gruppoMuscolare) continue;
+    volume[p.gruppoMuscolare] = (volume[p.gruppoMuscolare] || 0) + p.durataSec;
+  }
 
   updateState((s) => {
     s.storicoSessioni.push({
-      data: oggi,
-      tipo: "reset+micro",
-      durataSec: durataTotale,
+      data: oggi, tipo: "reset+micro", durataSec: durataTotale,
       esercizi: [...new Set(passiLavoro.map((p) => p.sigla || p.nome))],
+      volumePerGruppo: volume,
     });
 
     if (s.streak.ultimaDataCompletata === oggi) {
-      // sessione già registrata oggi, streak invariata
+      // già registrata oggi
     } else if (s.streak.ultimaDataCompletata === addGiorni(oggi, -1)) {
       s.streak.giorniConsecutivi += 1;
     } else {
       s.streak.giorniConsecutivi = 1;
     }
     s.streak.ultimaDataCompletata = oggi;
-
-    if (!s.programma.settimanaIniziataIl) {
-      s.programma.settimanaIniziataIl = oggi;
-    }
+    if (!s.programma.settimanaIniziataIl) s.programma.settimanaIniziataIl = oggi;
   });
 
   valutaAvanzamentoSettimana();
   engineAttivo = null;
+  videoMontato = null;
   nascondiControlli();
 
-  const streakAggiornata = getState().streak.giorniConsecutivi;
+  const streak = getState().streak.giorniConsecutivi;
   container.innerHTML = `
     <div class="sess-centro">
       <div class="sess-fine">
-        <h2>Sessione completata</h2>
-        <p>${streakAggiornata} ${streakAggiornata === 1 ? "giorno" : "giorni"} di fila.</p>
+        <div style="color:var(--verde)">${icona("spunta", 44)}</div>
+        <h2 class="titolo-2">Sessione completata</h2>
+        <p class="corpo">${streak} ${streak === 1 ? "giorno" : "giorni"} di fila.</p>
         <button class="btn btn-primary" id="btn-fine-sessione">Chiudi</button>
       </div>
     </div>
@@ -371,41 +395,34 @@ function completaSessione(container, passiLavoro) {
   document.getElementById("sessione-progress").textContent = "";
   container.querySelector("#btn-fine-sessione").addEventListener("click", () => {
     document.getElementById("view-sessione").hidden = true;
+    document.dispatchEvent(new CustomEvent("sessione-chiusa"));
   });
 }
 
 function contaGiorniCompletatiInFinestra(storico, inizioISO, giorni) {
-  const dateFinestra = new Set();
-  for (let i = 0; i < giorni; i++) dateFinestra.add(addGiorni(inizioISO, i));
-  const dateCompletate = new Set(
-    storico.filter((s) => s.tipo === "reset+micro").map((s) => s.data)
-  );
-  let count = 0;
-  for (const d of dateFinestra) if (dateCompletate.has(d)) count++;
-  return count;
+  const finestra = new Set();
+  for (let i = 0; i < giorni; i++) finestra.add(addGiorni(inizioISO, i));
+  const completate = new Set(storico.filter((s) => s.tipo === "reset+micro").map((s) => s.data));
+  let n = 0;
+  for (const d of finestra) if (completate.has(d)) n++;
+  return n;
 }
 
-// Blocco 0 ripete la settimana se in 7 giorni si è saltato più di un
-// giorno; oltre il Blocco 0 la settimana avanza senza questa regola
-// (non richiesta per i blocchi successivi).
 function valutaAvanzamentoSettimana() {
   const state = getState();
   const inizio = state.programma.settimanaIniziataIl;
-
   if (!inizio) {
     updateState((s) => { s.programma.settimanaIniziataIl = oggiISO(); });
     return;
   }
+  if (giorniTra(inizio, oggiISO()) < 7) return;
 
-  const passati = giorniTra(inizio, oggiISO());
-  if (passati < 7) return;
-
-  const giorniCompletati = contaGiorniCompletatiInFinestra(state.storicoSessioni, inizio, 7);
-  const giorniSaltati = 7 - giorniCompletati;
+  const completati = contaGiorniCompletatiInFinestra(state.storicoSessioni, inizio, 7);
+  const saltati = 7 - completati;
 
   updateState((s) => {
     if (s.programma.blocco === 0) {
-      if (giorniSaltati > 1) {
+      if (saltati > 1) {
         s.programma.settimanaIniziataIl = oggiISO(); // ripete la settimana 0
       } else {
         s.programma.blocco = 1;
@@ -419,26 +436,19 @@ function valutaAvanzamentoSettimana() {
   });
 }
 
-// ===================== controlli esterni (pausa, chiusura) =====================
+// ===================== controlli =====================
 
 function togglePausa() {
   if (!engineAttivo) return;
-  if (engineAttivo.inPausa) {
-    engineAttivo.avvia();
-    aggiornaPulsantePausa(false);
-  } else {
-    engineAttivo.pausa();
-    aggiornaPulsantePausa(true);
-  }
+  if (engineAttivo.inPausa) { engineAttivo.avvia(); aggiornaPulsantePausa(false); }
+  else { engineAttivo.pausa(); aggiornaPulsantePausa(true); }
 }
 
 function fermaSessione() {
-  if (engineAttivo) {
-    engineAttivo.ferma();
-    engineAttivo = null;
-  }
+  if (engineAttivo) { engineAttivo.ferma(); engineAttivo = null; }
+  videoMontato = null;
   const body = document.getElementById("sessione-body");
-  if (body) body.innerHTML = ""; // ferma anche l'eventuale video incorporato
+  if (body) body.innerHTML = "";
   nascondiControlli();
 }
 
@@ -446,7 +456,7 @@ function aggiornaPulsantePausa(inPausa) {
   const btn = document.getElementById("btn-pausa-sessione");
   if (!btn) return;
   btn.hidden = false;
-  btn.textContent = inPausa ? "▶" : "⏸";
+  btn.innerHTML = icona(inPausa ? "play" : "pausa", 20, inPausa);
   btn.setAttribute("aria-label", inPausa ? "Riprendi" : "Pausa");
 }
 
@@ -460,4 +470,7 @@ function nascondiControlli() {
   if (btn) btn.hidden = true;
 }
 
-export { renderSessione, togglePausa, fermaSessione, valutaAvanzamentoSettimana };
+export {
+  renderSessione, togglePausa, fermaSessione, valutaAvanzamentoSettimana,
+  costruisciPassiLavoro, riepilogoModuli, oggiISO, addGiorni, giorniTra,
+};

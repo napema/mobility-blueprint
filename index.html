@@ -6,11 +6,12 @@
 <title>Mobilità — from 0 to hero</title>
 
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1a1a2e">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 
 <!-- iOS home screen -->
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Mobilità">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/icon-192.png">
@@ -22,42 +23,44 @@
 <div id="app">
 
   <header class="app-header">
-    <span class="app-header__title">Mobilità</span>
-    <span class="app-header__streak" id="streak-indicator" title="Giorni consecutivi">🔥 0</span>
+    <div class="app-header__interno">
+      <span class="app-header__title">Mobilità</span>
+      <span class="app-header__streak" id="streak-indicator" title="Giorni consecutivi"></span>
+    </div>
   </header>
 
   <main class="app-main">
 
     <!-- ============ VISTA: OGGI ============ -->
     <section class="view" id="view-oggi" data-view="oggi">
-      <h1>Oggi</h1>
-      <p class="view-placeholder">
-        Qui comparirà la sessione serale di oggi (RESET + MICRO) e lo stato del blocco/settimana corrente.
-      </p>
-      <button class="btn btn-primary" id="btn-inizia-sessione">Inizia sessione</button>
+      <div id="oggi-body"></div>
     </section>
 
     <!-- ============ VISTA: PROGRESSI ============ -->
     <section class="view" id="view-progressi" data-view="progressi" hidden>
-      <h1>Progressi</h1>
       <div id="progressi-body"></div>
     </section>
 
     <!-- ============ VISTA: IMPOSTAZIONI ============ -->
     <section class="view" id="view-impostazioni" data-view="impostazioni" hidden>
-      <h1>Impostazioni</h1>
+      <div class="vista-intestazione">
+        <h1 class="titolo-grande">Impostazioni</h1>
+      </div>
       <ul class="settings-list">
         <li><button class="btn btn-secondary" id="btn-rifai-assessment">Rifai assessment</button></li>
       </ul>
-      <p class="view-placeholder">Blocco/settimana, promemoria e dati verranno gestiti da qui.</p>
+      <div class="vetro scheda" style="margin-top:16px">
+        <div class="scheda__testa"><span class="occhiello">Programma</span></div>
+        <p class="didascalia" id="impostazioni-stato"></p>
+      </div>
     </section>
 
-    <!-- ============ OVERLAY: SESSIONE (follow-along) ============ -->
+    <!-- ============ OVERLAY: SESSIONE ============ -->
     <section class="view view-overlay" id="view-sessione" data-view="sessione" hidden>
       <header class="overlay-header">
-        <button class="btn-icon" id="btn-chiudi-sessione" aria-label="Chiudi sessione">✕</button>
-        <span id="sessione-progress">Esercizio — di —</span>
-        <button class="btn-icon" id="btn-pausa-sessione" aria-label="Pausa" hidden>⏸</button>
+        <button class="btn-icon" id="btn-chiudi-sessione" aria-label="Chiudi sessione"></button>
+        <span id="sessione-progress"></span>
+        <button class="btn-icon" id="btn-pausa-sessione" aria-label="Pausa" hidden></button>
       </header>
       <div class="overlay-body" id="sessione-body"></div>
     </section>
@@ -65,8 +68,9 @@
     <!-- ============ OVERLAY: ASSESSMENT ============ -->
     <section class="view view-overlay" id="view-assessment" data-view="assessment" hidden>
       <header class="overlay-header">
-        <button class="btn-icon" id="btn-chiudi-assessment" aria-label="Chiudi assessment">✕</button>
-        <span>Assessment iniziale</span>
+        <button class="btn-icon" id="btn-chiudi-assessment" aria-label="Chiudi assessment"></button>
+        <span>Assessment</span>
+        <span style="width:44px;flex:0 0 auto"></span>
       </header>
       <div class="overlay-body" id="assessment-body"></div>
     </section>
@@ -75,15 +79,15 @@
 
   <nav class="bottom-nav">
     <button class="bottom-nav__item is-active" data-nav-target="oggi">
-      <span class="bottom-nav__icon">🏠</span>
+      <span class="bottom-nav__icon" data-icona="casa"></span>
       <span class="bottom-nav__label">Oggi</span>
     </button>
     <button class="bottom-nav__item" data-nav-target="progressi">
-      <span class="bottom-nav__icon">📈</span>
+      <span class="bottom-nav__icon" data-icona="grafico"></span>
       <span class="bottom-nav__label">Progressi</span>
     </button>
     <button class="bottom-nav__item" data-nav-target="impostazioni">
-      <span class="bottom-nav__icon">⚙️</span>
+      <span class="bottom-nav__icon" data-icona="ingranaggio"></span>
       <span class="bottom-nav__label">Impostazioni</span>
     </button>
   </nav>
