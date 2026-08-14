@@ -54,13 +54,21 @@ class FollowAlongEngine {
     this.secondiResidui = 0;
   }
 
+  // Salta al passo successivo senza aspettare il timer (pulsante "Sono pronto").
+  avanti() {
+    if (this.steps.length === 0) return;
+    this._prossimoStep();
+  }
+
   _tick() {
     if (this.inPausa) return;
     this.secondiResidui -= 1;
     this.onTick(this.secondiResidui, this.stepCorrente());
 
     if (this.secondiResidui <= 0) {
-      this._beep();
+      // Il suono dipende da cosa sta per iniziare: doppio acuto quando parte
+      // la tenuta vera (è il segnale di "vai"), singolo quando finisce.
+      this._beep(this.stepCorrente()?.beep === "inizio" ? "inizio" : "fine");
       this._prossimoStep();
     }
   }
@@ -76,18 +84,28 @@ class FollowAlongEngine {
     this.onStepChange(this.stepCorrente(), this.indiceCorrente, this.steps.length);
   }
 
-  _beep() {
+  _beep(tipo = "fine") {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.15);
-      osc.onended = () => ctx.close();
+      const suona = (frequenza, ritardo, durata) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = frequenza;
+        gain.gain.setValueAtTime(0.22, ctx.currentTime + ritardo);
+        osc.start(ctx.currentTime + ritardo);
+        osc.stop(ctx.currentTime + ritardo + durata);
+      };
+
+      if (tipo === "inizio") {
+        suona(1180, 0, 0.12);
+        suona(1180, 0.18, 0.12);
+        setTimeout(() => ctx.close(), 600);
+      } else {
+        suona(760, 0, 0.18);
+        setTimeout(() => ctx.close(), 500);
+      }
     } catch {
       // audio non disponibile: il follow-along resta comunque utilizzabile via schermo
     }

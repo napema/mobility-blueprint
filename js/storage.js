@@ -49,11 +49,28 @@ const DEFAULT_STATE = {
   volumePerGruppo: {},        // { [gruppoMuscolare]: secondiTotaliSettimanaCorrente }
 };
 
+// Fusione profonda: uno stato salvato da una versione precedente dell'app
+// non deve cancellare i campi aggiunti dopo. Con una fusione superficiale
+// un `programma` vecchio (solo blocco/settimana) sostituiva l'intero
+// oggetto, lasciando i campi nuovi undefined e facendo fallire in silenzio
+// chi li usava. Gli array vengono sostituiti, non uniti.
+function mergeProfondo(base, salvato) {
+  const out = { ...base };
+  for (const [chiave, valore] of Object.entries(salvato ?? {})) {
+    const attuale = base[chiave];
+    const entrambiOggetti =
+      valore && typeof valore === "object" && !Array.isArray(valore) &&
+      attuale && typeof attuale === "object" && !Array.isArray(attuale);
+    out[chiave] = entrambiOggetti ? mergeProfondo(attuale, valore) : valore;
+  }
+  return out;
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return structuredClone(DEFAULT_STATE);
-    return { ...structuredClone(DEFAULT_STATE), ...JSON.parse(raw) };
+    return mergeProfondo(structuredClone(DEFAULT_STATE), JSON.parse(raw));
   } catch {
     return structuredClone(DEFAULT_STATE);
   }

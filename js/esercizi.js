@@ -10,6 +10,14 @@
 // quindi i suoi lati sono presi così come risultano dalla descrizione
 // raccolta fuori dall'app (tessuto che frena a destra, rinforzo a
 // sinistra) e restano fissi finché quella misura non esiste.
+//
+// Il campo `serve` è obbligatorio su ogni esercizio: l'utente ha solo
+// foam roller, muro, sedia e pavimento (SPEC §2). I video YouTube sono di
+// terzi e in alcuni mostrano attrezzi che qui non servono: `serve` è la
+// fonte di verità, il video no.
+
+const NOTA_ATTREZZI =
+  "Nel video possono comparire elastici, blocchi o altri attrezzi: ignorali. Qui serve solo quello indicato sopra.";
 
 const RESET_DURATA_SERIE_SEC = 40; // ~5-10 cicli respiratori per serie
 const MICRO_DURATA_SEC = 30;
@@ -22,19 +30,19 @@ const RESET_GRUPPO_A = {
   esercizi: [
     {
       sigla: "A1", nome: "Sdraiato sul fianco, spinta di gluteo", video: "pPmIKpPJP7c",
-      lavoraLato: "lat", appoggioLato: "away",
+      lavoraLato: "lat", appoggioLato: "away", serve: "Solo il pavimento",
       istruzioni: "Sdraiato sul fianco d'appoggio, spinge il gluteo del lato di lavoro.",
       gruppoMuscolare: "gluteo",
     },
     {
       sigla: "A2", nome: "Esercizio A2", video: "O9PSPzyhozs",
-      lavoraLato: "lat",
+      lavoraLato: "lat", serve: "Solo il pavimento",
       istruzioni: "Segui la posizione mostrata nel video, caricando il lato di lavoro.",
       gruppoMuscolare: "anca-laterale",
     },
     {
       sigla: "A3", nome: "Esercizio A3", video: "r8t2tgUnF9k",
-      lavoraLato: "lat",
+      lavoraLato: "lat", serve: "Solo il pavimento",
       istruzioni: "Segui la posizione mostrata nel video, caricando il lato di lavoro.",
       gruppoMuscolare: "quadricipite",
     },
@@ -49,19 +57,19 @@ const RESET_GRUPPO_B = {
   esercizi: [
     {
       sigla: "B1", nome: "Allungo sopra la testa", video: "bb1poiG5DFA",
-      lavoraLato: "away", braccioLato: "lat",
+      lavoraLato: "away", braccioLato: "lat", serve: "Solo il pavimento",
       istruzioni: "Il braccio che allunga sopra la testa è dal lato lateralizzato: apre la gabbia toracica e lascia traslare il peso verso il lato di lavoro.",
       gruppoMuscolare: "obliqui",
     },
     {
       sigla: "B2", nome: "Esercizio B2", video: "IiIF7jpAj1U",
-      lavoraLato: "away",
+      lavoraLato: "away", serve: "Solo il pavimento",
       istruzioni: "Segui la posizione mostrata nel video, caricando il lato di lavoro.",
       gruppoMuscolare: "adduttori",
     },
     {
       sigla: "B3", nome: "Esercizio B3", video: "5-NPvHbyf7c",
-      lavoraLato: "away",
+      lavoraLato: "away", serve: "Solo il pavimento",
       istruzioni: "Segui la posizione mostrata nel video, caricando il lato di lavoro.",
       gruppoMuscolare: "femorali",
     },
@@ -79,17 +87,17 @@ const MODULO_M1 = {
   perche: "Alimenta il deep squat ed è direttamente protettiva sugli shin splints pregressi.",
   esercizi: [
     {
-      nome: "Knee-to-wall", perLato: true,
+      nome: "Knee-to-wall", perLato: true, serve: "Un muro",
       istruzioni: "Piede a ~10 cm dal muro. Il ginocchio spinge in avanti oltre le dita senza staccare il tallone.",
       gruppoMuscolare: "caviglia",
     },
     {
-      nome: "Tenuta in accosciata profonda", perLato: false,
+      nome: "Tenuta in accosciata profonda", perLato: false, serve: "Nessun attrezzo",
       istruzioni: "Gomiti dentro le ginocchia, spinta attiva verso l'esterno.",
       gruppoMuscolare: "caviglia-anca",
     },
     {
-      nome: "Soleo", perLato: true,
+      nome: "Soleo", perLato: true, serve: "Un muro",
       istruzioni: "Stessa posizione del knee-to-wall ma con il ginocchio molto più piegato.",
       gruppoMuscolare: "soleo",
     },
@@ -101,17 +109,17 @@ const MODULO_M2 = {
   perche: "Il range passivo c'è già. Il limite è il controllo, non la lunghezza.",
   esercizi: [
     {
-      nome: "Active straight leg raise", perLato: true,
+      nome: "Active straight leg raise", perLato: true, serve: "Solo il pavimento",
       istruzioni: "Supino, una gamba tesa sale il più in alto possibile, senza slancio e senza mani. È l'esercizio che conta di più in questo modulo.",
       gruppoMuscolare: "femorali",
     },
     {
-      nome: "Pike seduto con compressione attiva", perLato: false,
+      nome: "Pike seduto con compressione attiva", perLato: false, serve: "Solo il pavimento",
       istruzioni: "Seduto gambe tese, tirati giù con gli addominali, non con le braccia. 5 tenute da 5\".",
       gruppoMuscolare: "addominali",
     },
     {
-      nome: "Femorali statico", perLato: true,
+      nome: "Femorali statico", perLato: true, serve: "Solo il pavimento",
       istruzioni: "Allungamento statico, solo come complemento.",
       gruppoMuscolare: "femorali",
     },
@@ -123,17 +131,17 @@ const MODULO_M3 = {
   perche: "Passa già al muro. Il limite è il controllo in assenza di supporto.",
   esercizi: [
     {
-      nome: "Prone lift-off", perLato: false,
+      nome: "Prone lift-off", perLato: false, serve: "Solo il pavimento",
       istruzioni: "A pancia sotto, braccia distese avanti: staccale da terra tenendo le costole giù. 8 tenute da 3\".",
       gruppoMuscolare: "dorsali",
     },
     {
-      nome: "Wall slide", perLato: false,
+      nome: "Wall slide", perLato: false, serve: "Un muro",
       istruzioni: "Schiena e lombare piatte contro il muro, braccia che scorrono su e giù mantenendo il contatto. 10 lente.",
       gruppoMuscolare: "spalle",
     },
     {
-      nome: "Gran dorsale", perLato: true,
+      nome: "Gran dorsale", perLato: true, serve: "Una sedia (o il pavimento)",
       istruzioni: "Allunga con la colonna lombare flessa — schiena arrotondata — altrimenti alleni gli estensori invece del bersaglio.",
       gruppoMuscolare: "gran-dorsale",
     },
@@ -148,22 +156,22 @@ const MODULO_M4 = {
   perche: "Differenza misurata in farfalla. Lavoro asimmetrico: volume doppio sul lato più stretto.",
   esercizi: [
     {
-      nome: "Frog rock back", perLato: false, dueFasi: true,
+      nome: "Frog rock back", perLato: false, dueFasi: true, serve: "Solo il pavimento",
       istruzioni: "In quadrupedia, ginocchia larghe: 8 oscillazioni lente, poi tenuta.",
       gruppoMuscolare: "adduttori",
     },
     {
-      nome: "90/90", perLato: true, extraLatoStretto: true,
+      nome: "90/90", perLato: true, extraLatoStretto: true, serve: "Solo il pavimento",
       istruzioni: "Seduto, focus sulla rotazione esterna dell'anca.",
       gruppoMuscolare: "rotatori-anca",
     },
     {
-      nome: "Figure-4 supina", perLato: true, extraLatoStretto: true,
+      nome: "Figure-4 supina", perLato: true, extraLatoStretto: true, serve: "Solo il pavimento",
       istruzioni: "Caviglia sopra il ginocchio opposto, tira la coscia verso di te. Sostituisce la pigeon pose: stessa rotazione esterna, senza torcere il ginocchio sinistro.",
       gruppoMuscolare: "piriforme-gluteo",
     },
     {
-      nome: "Farfalla", perLato: false,
+      nome: "Farfalla", perLato: false, serve: "Solo il pavimento",
       istruzioni: "Passiva, senza spingere le ginocchia con le mani.",
       gruppoMuscolare: "adduttori",
     },
@@ -181,22 +189,22 @@ const MODULO_M5 = {
   latoRinforzo: "sx",
   esercizi: [
     {
-      nome: "Allungamento laterale", fase: "allungamento", volte: 2,
+      nome: "Allungamento laterale", fase: "allungamento", volte: 2, serve: "Una sedia",
       istruzioni: "Seduto, mano opposta al bordo della sedia per fissare la spalla. Porta l'orecchio verso quella spalla, senza ruotare la testa e senza alzare il mento.",
       gruppoMuscolare: "collo-laterale",
     },
     {
-      nome: "Allungamento con rotazione (scaleno)", fase: "allungamento", volte: 1,
+      nome: "Allungamento con rotazione (scaleno)", fase: "allungamento", volte: 1, serve: "Una sedia",
       istruzioni: "Stessa posizione, con una leggera rotazione del mento verso l'ascella.",
       gruppoMuscolare: "collo-scaleno",
     },
     {
-      nome: "Isometria di rinforzo", fase: "rinforzo", volte: 1,
+      nome: "Isometria di rinforzo", fase: "rinforzo", volte: 1, serve: "Nessun attrezzo",
       istruzioni: "Mano sulla tempia dello stesso lato: la testa spinge contro la mano senza muoversi. Pressione leggera, 5 tenute da 5\".",
       gruppoMuscolare: "collo-laterale",
     },
     {
-      nome: "Flessione laterale attiva", fase: "rinforzo", volte: 1,
+      nome: "Flessione laterale attiva", fase: "rinforzo", volte: 1, serve: "Nessun attrezzo",
       istruzioni: "Senza mani, porta l'orecchio verso la spalla e torna. 8 ripetizioni lente.",
       gruppoMuscolare: "collo-laterale",
     },
@@ -209,6 +217,7 @@ const MODULI_MICRO = [MODULO_M1, MODULO_M2, MODULO_M3, MODULO_M4, MODULO_M5];
 const MODULI_MICRO_BLOCCO_0 = [MODULO_M1, MODULO_M5];
 
 export {
+  NOTA_ATTREZZI,
   RESET_GRUPPO_A,
   RESET_GRUPPO_B,
   RESET_DURATA_SERIE_SEC,
