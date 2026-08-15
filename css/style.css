@@ -511,6 +511,38 @@ body::before {
 
 .sess-chip-riga { display: flex; flex-wrap: wrap; gap: 6px; }
 
+/* Cambio lato: deve saltare all'occhio, altrimenti due serie identiche
+   di fila sembrano una ripetizione inutile invece che "ora l'altra gamba". */
+.sess-cambio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: var(--raggio-s);
+  background: rgba(255, 149, 0, 0.16);
+  color: var(--arancio);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Zona di azzeramento */
+.zona-pericolo { border-color: rgba(255, 59, 48, 0.35); }
+.btn-pericolo { background: rgba(255, 59, 48, 0.14); color: var(--rosso); }
+.btn-pericolo:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.field input[type="text"] {
+  min-height: var(--tocco);
+  padding: 10px 14px;
+  border: 0.5px solid var(--separatore);
+  border-radius: var(--raggio-s);
+  background: var(--sfondo-2);
+  color: var(--etichetta);
+  font-family: inherit;
+  font-size: 17px;
+  width: 100%;
+}
+
 .sess-passi { list-style: none; margin: 0; padding: 0; counter-reset: passo; }
 
 .sess-passi li {

@@ -1,12 +1,12 @@
 // app.js — entry point: navigazione tra viste, icone, service worker,
 // wiring verso gli altri moduli.
 
-import { getState } from "./storage.js";
+import { getState, azzeraTutto, azzeraStorico } from "./storage.js";
 import { icona } from "./icone.js";
 import { renderOggi } from "./oggi.js";
 import { renderProgressi } from "./progressi.js";
 import { renderAssessment } from "./assessment.js";
-import { renderSessione, togglePausa, fermaSessione, settimanaCorrente } from "./sessione.js";
+import { renderSessione, togglePausa, fermaSessione, settimanaEffettiva } from "./sessione.js";
 import * as notifiche from "./notifiche.js";
 
 const TAB_VIEWS = ["oggi", "progressi", "impostazioni"];
@@ -51,9 +51,12 @@ function aggiornaImpostazioni() {
   const el = document.getElementById("impostazioni-stato");
   if (el) {
     const lato = s.assessment.esitoTest2.latoLateralizzato;
-    el.innerHTML = `Settimana ${settimanaCorrente(s)}<br>`
+    const giorni = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
+    el.innerHTML = `Settimana ${settimanaEffettiva(s)} del programma<br>`
       + `Lateralizzato: ${lato ? (lato === "dx" ? "destra" : "sinistra") : "non determinato"}<br>`
-      + `Aggancio: ${s.programma.aggancio.toLowerCase()}`;
+      + `Giorno di palestra: ${giorni[s.programma.giornoPalestra ?? 2]}<br>`
+      + `Aggancio: ${s.programma.aggancio.toLowerCase()}<br>`
+      + `Sessioni registrate: ${s.storicoSessioni.length}`;
   }
   aggiornaStatoNotifiche();
 }
@@ -99,14 +102,15 @@ function initNavigazione() {
   document.getElementById("btn-rifai-assessment").addEventListener("click", () => apriOverlay("assessment"));
   document.getElementById("btn-chiudi-assessment").addEventListener("click", () => chiudiOverlay("assessment"));
 
+  // Il tipo di sessione lo decide l'app e viaggia sul pulsante stesso.
   document.getElementById("oggi-body").addEventListener("click", (e) => {
-    if (e.target.closest("#btn-inizia-sessione")) {
-      const tipo = document.querySelector("#scelta-tipo .chip-scelta.is-active")?.dataset.tipo || "quotidiana";
-      apriOverlay("sessione", tipo);
-    }
+    const btn = e.target.closest("#btn-inizia-sessione");
+    if (btn) apriOverlay("sessione", btn.dataset.tipo || "quotidiano");
   });
 
   document.addEventListener("sessione-chiusa", () => chiudiOverlay("sessione"));
+
+  initAzzeramento();
 
   document.getElementById("btn-attiva-notifiche").addEventListener("click", async () => {
     await notifiche.chiediPermesso();
@@ -129,6 +133,65 @@ function initNavigazione() {
     } catch {
       nota.textContent = testo;
     }
+  });
+}
+
+// Azzeramento a due livelli, entrambi protetti: lo storico si cancella
+// con una conferma, tutto il resto richiede anche di scrivere la parola.
+function initAzzeramento() {
+  const btnStorico = document.getElementById("btn-reset-storico");
+  const btnTutto = document.getElementById("btn-reset-tutto");
+  const blocco = document.getElementById("reset-conferma");
+  const parola = document.getElementById("reset-parola");
+  const conferma = document.getElementById("btn-reset-conferma");
+  const annulla = document.getElementById("btn-reset-annulla");
+  if (!btnStorico) return;
+
+  let armatoStorico = false;
+  btnStorico.addEventListener("click", () => {
+    if (!armatoStorico) {
+      armatoStorico = true;
+      btnStorico.textContent = "Sicuro? Tocca di nuovo per cancellare lo storico";
+      btnStorico.classList.add("btn-pericolo");
+      setTimeout(() => {
+        armatoStorico = false;
+        btnStorico.textContent = "Cancella solo lo storico delle sessioni";
+        btnStorico.classList.remove("btn-pericolo");
+      }, 5000);
+      return;
+    }
+    azzeraStorico();
+    armatoStorico = false;
+    btnStorico.textContent = "Storico cancellato";
+    btnStorico.classList.remove("btn-pericolo");
+    aggiornaStreak();
+    aggiornaImpostazioni();
+    renderOggi(document.getElementById("oggi-body"));
+    setTimeout(() => { btnStorico.textContent = "Cancella solo lo storico delle sessioni"; }, 2500);
+  });
+
+  btnTutto.addEventListener("click", () => {
+    blocco.hidden = false;
+    btnTutto.hidden = true;
+    parola.value = "";
+    conferma.disabled = true;
+    parola.focus();
+  });
+
+  parola.addEventListener("input", () => {
+    conferma.disabled = parola.value.trim().toUpperCase() !== "AZZERA";
+  });
+
+  annulla.addEventListener("click", () => {
+    blocco.hidden = true;
+    btnTutto.hidden = false;
+  });
+
+  conferma.addEventListener("click", async () => {
+    conferma.disabled = true;
+    conferma.textContent = "Azzeramento…";
+    await azzeraTutto();
+    location.reload();
   });
 }
 

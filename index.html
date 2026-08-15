@@ -63,6 +63,33 @@
         <div class="scheda__testa"><span class="occhiello">Programma</span></div>
         <p class="didascalia" id="impostazioni-stato"></p>
       </div>
+
+      <!-- Reset: due passaggi distinti e una conferma scritta, perché
+           premuto per sbaglio cancellerebbe assessment e storico. -->
+      <div class="vetro scheda zona-pericolo">
+        <div class="scheda__testa">
+          <span class="occhiello" style="color:var(--rosso)">Azzeramento</span>
+        </div>
+        <p class="didascalia" style="margin-bottom:12px">
+          Durante le prove l'app registra sessioni vere. Qui le togli.
+        </p>
+
+        <button class="btn btn-secondary" id="btn-reset-storico">Cancella solo lo storico delle sessioni</button>
+        <p class="didascalia" style="margin:8px 0 16px">Tiene assessment, foto e impostazioni.</p>
+
+        <button class="btn btn-secondary btn-pericolo" id="btn-reset-tutto">Azzera tutto</button>
+        <div id="reset-conferma" hidden style="margin-top:12px">
+          <p class="didascalia" style="margin-bottom:8px">
+            Cancella <strong>assessment, foto, storico e impostazioni</strong>. Non è reversibile.
+            Scrivi <strong>AZZERA</strong> per confermare.
+          </p>
+          <div class="field">
+            <input type="text" id="reset-parola" placeholder="AZZERA" autocapitalize="characters" autocomplete="off">
+          </div>
+          <button class="btn btn-pericolo" id="btn-reset-conferma" disabled>Azzera definitivamente</button>
+          <button class="btn btn-secondary" id="btn-reset-annulla" style="margin-top:8px">Annulla</button>
+        </div>
+      </div>
     </section>
 
     <!-- ============ OVERLAY: SESSIONE ============ -->

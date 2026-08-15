@@ -41,13 +41,13 @@
 </div>
 
 <script type="module">
-import { GRUPPI, BACINO, CARICO } from "./js/esercizi.js";
+import { GRUPPI, BACINO, LOADED } from "./js/esercizi.js";
 
 const elenco = document.getElementById("elenco");
 const tutti = [
   ...Object.values(GRUPPI).map((g) => [g.nome, g.esercizi]),
   [BACINO.nome, BACINO.esercizi],
-  [CARICO.nome, CARICO.esercizi],
+  [LOADED.nome, LOADED.esercizi],
 ];
 
 let conVideo = 0, senzaVideo = 0;

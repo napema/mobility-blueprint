@@ -43,9 +43,12 @@ const DEFAULT_STATE = {
     avvisoColloMostrato: false,   // filtro di sicurezza collo, mostrato una sola volta
     // Regola 3: un solo aggancio, sempre lo stesso. Lo propone l'app.
     aggancio: "Subito dopo la doccia serale",
-    oraPromemoria: "21:00",
+    oraPromemoria: "21:15",
     notificheAttive: false,
+    giornoPalestra: 2,            // 0 = lunedì … 6 = domenica (mercoledì)
   },
+  // Cosa è successo oggi: serve solo per la giornata corrente, non è storico.
+  giornoCorrente: { data: null, haCorso: false, forza: null },
   storicoSessioni: [],       // [{ data, tipo: "reset+micro"|"carico", durataSec, esercizi: [...] }]
   streak: {
     giorniConsecutivi: 0,
@@ -171,4 +174,27 @@ async function salvaStatoSW(dati) {
   }
 }
 
-export { getState, updateState, salvaFoto, elencaFoto, salvaStatoSW };
+// Azzeramento completo: localStorage + tutti i database IndexedDB.
+// Serve durante i test, e serve poter ripartire davvero da zero.
+async function azzeraTutto() {
+  localStorage.removeItem(LS_KEY);
+  const nomi = ["mobilita-foto", "mobilita-stato"];
+  await Promise.all(nomi.map((n) => new Promise((resolve) => {
+    const req = indexedDB.deleteDatabase(n);
+    req.onsuccess = req.onerror = req.onblocked = () => resolve();
+  })));
+}
+
+// Azzera solo lo storico delle sessioni: utile dopo aver fatto prove,
+// senza perdere l'assessment che è costato tempo.
+function azzeraStorico() {
+  updateState((s) => {
+    s.storicoSessioni = [];
+    s.streak = { giorniConsecutivi: 0, ultimaDataCompletata: null };
+    s.volumePerGruppo = {};
+    s.programma.inizioProgramma = null;
+    s.giornoCorrente = { data: null, haCorso: false, forza: null };
+  });
+}
+
+export { getState, updateState, salvaFoto, elencaFoto, salvaStatoSW, azzeraTutto, azzeraStorico };
