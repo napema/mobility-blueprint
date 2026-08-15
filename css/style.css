@@ -51,11 +51,20 @@
   --riempimento: rgba(120, 120, 128, 0.12);
   --riempimento-2: rgba(120, 120, 128, 0.08);
 
-  /* --- Liquid Glass: strato traslucido sopra il contenuto --- */
-  --vetro: rgba(255, 255, 255, 0.72);
-  --vetro-bordo: rgba(255, 255, 255, 0.85);
-  --vetro-ombra: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 28px rgba(0, 0, 0, 0.07);
-  --vetro-barra: rgba(249, 249, 251, 0.82);
+  /* --- Liquid Glass --- Il vetro non è "bianco trasparente": è un
+     materiale. Serve la rifrazione (blur + saturazione), un bordo che
+     raccoglie la luce, e un riflesso speculare sul bordo superiore.
+     Senza il riflesso resta una scatola opaca. */
+  --vetro: rgba(255, 255, 255, 0.62);
+  --vetro-bordo: rgba(255, 255, 255, 0.7);
+  --vetro-luce: rgba(255, 255, 255, 0.9);
+  --vetro-ombra:
+    0 1px 1px rgba(0, 0, 0, 0.04),
+    0 8px 32px rgba(0, 0, 0, 0.09),
+    inset 0 1px 0 var(--vetro-luce),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.25);
+  --vetro-barra: rgba(249, 249, 251, 0.7);
+  --sfocatura: 32px;
 
   /* --- ambiente cromatico: dà qualcosa da rifrangere al vetro --- */
   --alone-1: rgba(0, 122, 255, 0.16);
@@ -96,10 +105,15 @@
     --riempimento: rgba(120, 120, 128, 0.24);
     --riempimento-2: rgba(120, 120, 128, 0.16);
 
-    --vetro: rgba(30, 30, 32, 0.72);
-    --vetro-bordo: rgba(255, 255, 255, 0.10);
-    --vetro-ombra: 0 1px 2px rgba(0, 0, 0, 0.30), 0 8px 28px rgba(0, 0, 0, 0.44);
-    --vetro-barra: rgba(20, 20, 22, 0.80);
+    --vetro: rgba(28, 28, 30, 0.62);
+    --vetro-bordo: rgba(255, 255, 255, 0.14);
+    --vetro-luce: rgba(255, 255, 255, 0.16);
+    --vetro-ombra:
+      0 1px 1px rgba(0, 0, 0, 0.4),
+      0 8px 32px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 var(--vetro-luce),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+    --vetro-barra: rgba(18, 18, 20, 0.68);
 
     --alone-1: rgba(10, 132, 255, 0.24);
     --alone-2: rgba(48, 209, 88, 0.16);
@@ -171,8 +185,8 @@ body::before {
   gap: var(--sp-2);
   padding: calc(var(--sicura-alto) + var(--sp-2)) var(--sp-3) var(--sp-2);
   background: var(--vetro-barra);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(190%) blur(var(--sfocatura));
+  -webkit-backdrop-filter: saturate(190%) blur(var(--sfocatura));
   border-bottom: 0.5px solid var(--separatore);
 }
 
@@ -202,7 +216,8 @@ body::before {
 .app-main {
   flex: 1;
   overflow-y: auto;
-  padding: var(--sp-3) var(--sp-3) calc(96px + var(--sicura-basso));
+  /* spazio per la pillola galleggiante in basso */
+  padding: var(--sp-3) var(--sp-3) calc(110px + var(--sicura-basso));
 }
 
 .app-main > .view { max-width: var(--colonna); margin-inline: auto; width: 100%; }
@@ -213,12 +228,29 @@ body::before {
 /* ============================ Liquid Glass ============================ */
 
 .vetro {
+  position: relative;
   background: var(--vetro);
-  backdrop-filter: saturate(180%) blur(24px);
-  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  backdrop-filter: saturate(190%) blur(var(--sfocatura));
+  -webkit-backdrop-filter: saturate(190%) blur(var(--sfocatura));
   border: 0.5px solid var(--vetro-bordo);
   border-radius: var(--raggio);
   box-shadow: var(--vetro-ombra);
+  overflow: hidden;
+}
+
+/* Il riflesso speculare: una banda chiara sul bordo alto, che è quello
+   che fa leggere la superficie come vetro invece che come pannello. */
+.vetro::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 40%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.14), transparent);
+  pointer-events: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .vetro::before { background: linear-gradient(to bottom, rgba(255, 255, 255, 0.06), transparent); }
 }
 
 .scheda { padding: var(--sp-2) var(--sp-2) var(--sp-2); margin-bottom: var(--sp-2); }
@@ -293,18 +325,32 @@ body::before {
 
 /* ============================ barra inferiore ============================ */
 
+/* La barra non è attaccata al bordo: è una pillola di vetro che
+   galleggia sopra il contenuto, come in iOS 26. */
 .bottom-nav {
   position: fixed;
-  left: 0; right: 0; bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--sp-1) + var(--sicura-basso));
   z-index: 15;
   display: flex;
   justify-content: center;
-  gap: var(--sp-1);
-  padding: var(--sp-1) var(--sp-2) calc(var(--sp-1) + var(--sicura-basso));
+  gap: var(--sp-05);
+  padding: 6px;
+  width: min(calc(100% - 32px), 420px);
   background: var(--vetro-barra);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-top: 0.5px solid var(--separatore);
+  backdrop-filter: saturate(190%) blur(var(--sfocatura));
+  -webkit-backdrop-filter: saturate(190%) blur(var(--sfocatura));
+  border: 0.5px solid var(--vetro-bordo);
+  border-radius: 999px;
+  box-shadow: var(--vetro-ombra);
+}
+
+.bottom-nav__item { border-radius: 999px; transition: background-color 0.2s ease, color 0.2s ease; }
+
+/* La voce attiva è una pastiglia dentro la pillola, non solo un colore. */
+.bottom-nav__item.is-active {
+  background: var(--riempimento-2);
 }
 
 .bottom-nav__item {
@@ -532,6 +578,59 @@ body::before {
 .confronto-foto figure { margin: 0; }
 .confronto-foto img { width: 100%; border-radius: var(--raggio-s); display: block; }
 .confronto-foto figcaption { font-size: 12px; color: var(--etichetta-2); text-align: center; margin-top: 4px; }
+
+/* ---------------- Orari delle notifiche ---------------- */
+
+.orari { margin-top: var(--sp-2); }
+
+.riga-orario {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: 12px 0;
+  border-top: 0.5px solid var(--separatore);
+}
+
+.riga-orario:first-child { border-top: none; }
+.riga-orario__nome { font-size: 15px; font-weight: 500; }
+.riga-orario__nota { font-size: 13px; color: var(--etichetta-2); margin-top: 2px; }
+.riga-orario__controlli { display: flex; align-items: center; gap: var(--sp-1); flex: 0 0 auto; }
+
+.campo-ora {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 0.5px solid var(--separatore);
+  border-radius: 10px;
+  background: var(--riempimento-2);
+  color: var(--etichetta);
+  font-family: inherit;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Interruttore in stile iOS: 51×31, pollice che scorre. */
+.interruttore { position: relative; display: inline-block; width: 51px; height: 31px; flex: 0 0 auto; }
+.interruttore input { opacity: 0; width: 0; height: 0; }
+.interruttore span {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--riempimento);
+  transition: background-color 0.25s ease;
+}
+.interruttore span::before {
+  content: "";
+  position: absolute;
+  width: 27px; height: 27px;
+  left: 2px; top: 2px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.interruttore input:checked + span { background: var(--verde); }
+.interruttore input:checked + span::before { transform: translateX(20px); }
 
 /* Pallino di stato del sync: un sync silenzioso che fallisce è peggio
    di nessun sync. */

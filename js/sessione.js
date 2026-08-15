@@ -468,7 +468,7 @@ function completaSessione(container, passiLavoro, tipo) {
     }
   });
 
-  salvaStatoSW({ ultimaSessione: oggi, oraPromemoria: getState().programma.oraPromemoria });
+  salvaStatoSW({ ultimaSessione: oggi });
   document.dispatchEvent(new CustomEvent("dati-cambiati"));
   engineAttivo = null;
   videoMontato = null;

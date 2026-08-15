@@ -43,9 +43,19 @@ const DEFAULT_STATE = {
     avvisoColloMostrato: false,   // filtro di sicurezza collo, mostrato una sola volta
     // Regola 3: un solo aggancio, sempre lo stesso. Lo propone l'app.
     aggancio: "Subito dopo la doccia serale",
-    oraPromemoria: "21:15",
     notificheAttive: false,
     giornoPalestra: 2,            // 0 = lunedì … 6 = domenica (mercoledì)
+    // Orari dei promemoria. Li legge il workflow dal repo dei dati:
+    // cambiarli qui li cambia davvero, senza toccare il codice.
+    notifiche: {
+      principale: "21:15",        // "hai corso oggi?"
+      recupero: "22:15",          // propone la dose da 2 minuti
+      palestra: "17:15",          // solo il giorno di palestra
+      settimanale: "19:00",       // domenica, riepilogo
+      attivaRecupero: true,
+      attivaPalestra: true,
+      attivaSettimanale: true,
+    },
   },
   // Cosa è successo oggi: serve solo per la giornata corrente, non è storico.
   giornoCorrente: { data: null, haCorso: false, forza: null },

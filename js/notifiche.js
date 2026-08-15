@@ -63,7 +63,7 @@ async function sincronizzaStato() {
   const s = getState();
   await salvaStatoSW({
     ultimaSessione: s.streak.ultimaDataCompletata,
-    oraPromemoria: s.programma.oraPromemoria,
+    oraPromemoria: (s.programma.notifiche || {}).principale,
   });
 }
 

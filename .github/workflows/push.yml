@@ -1,12 +1,13 @@
 name: Notifiche
 
 # GitHub Pages è statico e non può mandare push: è questo workflow il
-# pezzo che sveglia il telefono. Gira ogni ora e decide dentro lo script
-# sull'ora di Roma, così l'ora legale si gestisce da sola.
+# pezzo che sveglia il telefono. Gira ogni 15 minuti e decide dentro lo
+# script sull'ora di Roma — così l'ora legale si gestisce da sola e
+# l'orario scelto nell'app viene rispettato entro un quarto d'ora.
 
 on:
   schedule:
-    - cron: "5 * * * *"   # ogni ora al minuto 5, UTC
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       forza:
@@ -29,4 +30,8 @@ jobs:
           VAPID_PUBLIC_KEY: BEF9vuHSz44QFNV_jFvlgimpwx0sKdpiW7hStEXAWoUx8LtQo78VLjS76_D-dJGKOfVrkMa-kbuyzrxwG77FXuo
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
+          # Servono a leggere gli orari scelti nell'app. Se mancano, si
+          # usano i predefiniti invece di fallire.
+          DATI_TOKEN: ${{ secrets.DATI_TOKEN }}
+          DATI_REPO: napema/mobilita-dati
           FORZA: ${{ github.event.inputs.forza }}

@@ -1,7 +1,7 @@
 // app.js — entry point: navigazione tra viste, icone, service worker,
 // wiring verso gli altri moduli.
 
-import { getState, azzeraTutto, azzeraStorico } from "./storage.js";
+import { getState, updateState, azzeraTutto, azzeraStorico } from "./storage.js";
 import { icona } from "./icone.js";
 import { renderOggi } from "./oggi.js";
 import { renderProgressi } from "./progressi.js";
@@ -80,6 +80,7 @@ function aggiornaStatoNotifiche() {
   testo.textContent = messaggi[stato] || "";
   attiva.hidden = stato === "granted" || stato === "non-supportate";
   prova.hidden = stato !== "granted";
+  riempiOrariNotifiche();
 
   // Su iOS il push esiste solo con la PWA installata dalla Home: dirlo
   // prima evita mezz'ora persa a chiedersi perché non arriva niente.
@@ -143,6 +144,54 @@ function initNavigazione() {
 
   document.getElementById("btn-sync-ora").addEventListener("click", () => sync.syncNow());
   document.getElementById("btn-svuota-cache").addEventListener("click", () => sync.svuotaCacheERicarica());
+
+  initOrariNotifiche();
+}
+
+// Gli orari finiscono in programma.notifiche, che viaggia col sync: il
+// workflow li rilegge dal repo dei dati, quindi cambiarli qui li cambia
+// davvero invece di essere un campo decorativo.
+const CAMPI_ORARIO = [
+  ["ora-principale", "principale"],
+  ["ora-recupero", "recupero"],
+  ["ora-palestra", "palestra"],
+  ["ora-settimanale", "settimanale"],
+];
+const CAMPI_ATTIVO = [
+  ["attiva-recupero", "attivaRecupero"],
+  ["attiva-palestra", "attivaPalestra"],
+  ["attiva-settimanale", "attivaSettimanale"],
+];
+
+function initOrariNotifiche() {
+  const salva = (chiave, valore) => {
+    updateState((s) => {
+      s.programma.notifiche = { ...(s.programma.notifiche || {}), [chiave]: valore };
+      s.metaUp = Date.now();
+    });
+    document.dispatchEvent(new CustomEvent("dati-cambiati"));
+  };
+
+  for (const [id, chiave] of CAMPI_ORARIO) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", () => salva(chiave, el.value));
+  }
+  for (const [id, chiave] of CAMPI_ATTIVO) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", () => salva(chiave, el.checked));
+  }
+}
+
+function riempiOrariNotifiche() {
+  const n = getState().programma.notifiche || {};
+  for (const [id, chiave] of CAMPI_ORARIO) {
+    const el = document.getElementById(id);
+    if (el && n[chiave]) el.value = n[chiave];
+  }
+  for (const [id, chiave] of CAMPI_ATTIVO) {
+    const el = document.getElementById(id);
+    if (el) el.checked = n[chiave] !== false;
+  }
 }
 
 // Azzeramento a due livelli, entrambi protetti: lo storico si cancella

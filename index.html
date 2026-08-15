@@ -73,6 +73,50 @@
         <p class="didascalia" id="notifiche-stato" style="margin-bottom:12px"></p>
         <button class="btn btn-secondary" id="btn-attiva-notifiche">Attiva le notifiche</button>
         <button class="btn btn-secondary" id="btn-prova-notifica" style="margin-top:8px" hidden>Notifica di prova</button>
+
+        <div class="orari" id="orari-notifiche">
+          <div class="riga-orario">
+            <div>
+              <div class="riga-orario__nome">Promemoria serale</div>
+              <div class="riga-orario__nota">"Hai corso oggi?" — apre la sessione giusta</div>
+            </div>
+            <input type="time" id="ora-principale" class="campo-ora">
+          </div>
+          <div class="riga-orario">
+            <div>
+              <div class="riga-orario__nome">Recupero</div>
+              <div class="riga-orario__nota">Solo se non l'hai fatta. Propone i 2 minuti</div>
+            </div>
+            <div class="riga-orario__controlli">
+              <input type="time" id="ora-recupero" class="campo-ora">
+              <label class="interruttore"><input type="checkbox" id="attiva-recupero"><span></span></label>
+            </div>
+          </div>
+          <div class="riga-orario">
+            <div>
+              <div class="riga-orario__nome">Giorno di palestra</div>
+              <div class="riga-orario__nota">Ricorda la loaded mobility</div>
+            </div>
+            <div class="riga-orario__controlli">
+              <input type="time" id="ora-palestra" class="campo-ora">
+              <label class="interruttore"><input type="checkbox" id="attiva-palestra"><span></span></label>
+            </div>
+          </div>
+          <div class="riga-orario">
+            <div>
+              <div class="riga-orario__nome">Riepilogo domenicale</div>
+              <div class="riga-orario__nota">Gruppi sotto soglia e streak</div>
+            </div>
+            <div class="riga-orario__controlli">
+              <input type="time" id="ora-settimanale" class="campo-ora">
+              <label class="interruttore"><input type="checkbox" id="attiva-settimanale"><span></span></label>
+            </div>
+          </div>
+          <p class="didascalia" style="margin-top:8px">
+            Gli orari valgono entro un quarto d'ora: il controllo gira ogni 15 minuti.
+            Massimo 2 notifiche al giorno — oltre, si disattivano e si perde tutto il sistema.
+          </p>
+        </div>
         <div id="sub-blocco" hidden style="margin-top:12px">
           <p class="didascalia" style="margin-bottom:8px">
             Copia questo testo e incollalo nel secret <strong>PUSH_SUBSCRIPTION</strong> del repo. Una volta sola.
