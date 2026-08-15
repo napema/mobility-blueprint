@@ -96,6 +96,7 @@ function espandi(ex, gruppo, stretto, settimana) {
     idEsercizio: ex.id, sigla: ex.sigla || null, nome: ex.nome, tag: ex.tag,
     gruppo: gruppo.id, gruppoNome: gruppo.nome,
     muscoli: ex.muscoli || [], serve: ex.serve, video: ex.video || null,
+    fonte: ex.fonte || null,
     passi: ex.passi || [], nota: ex.nota || null, ripetizioni: ex.ripetizioni || null,
     gruppoMuscolare: (ex.muscoli && ex.muscoli[0]) || gruppo.nome,
     carico: caricoSuggerito(ex, settimana),
@@ -144,17 +145,17 @@ function costruisciQuotidiano(state) {
   const stretto = latoStretto(state);
   const passi = [];
 
-  // 1. COLLO — sempre, per primo
-  for (const ex of G1.esercizi) passi.push(...espandi(ex, G1, stretto, settimana));
-
-  // 2. BLOCCO ATTIVO — 3 al giorno, a rotazione sul giorno dell'anno
+  // 1. BLOCCO ATTIVO — 3 al giorno, a rotazione sul giorno dell'anno.
+  // Apre la sessione: è il lavoro che alza il pavimento, e va fatto da
+  // freschi. (Prima apriva il collo, e siccome il collo è l'unica parte
+  // non coperta dai video del canale, sembrava che il canale non ci fosse.)
   const giorno = giorniTra(state.programma.inizioProgramma || oggiISO(), oggiISO());
   for (let i = 0; i < 3; i++) {
     const id = BLOCCO_ATTIVO[(giorno * 3 + i) % BLOCCO_ATTIVO.length];
     passi.push(...espandiPerId(id, stretto, settimana));
   }
 
-  // 3. STRETCHING dei gruppi attivi del blocco corrente
+  // 2. STRETCHING dei gruppi attivi del blocco corrente
   for (const idG of rot.gruppi.slice(0, fase.gruppiStretch)) {
     const gruppo = GRUPPI[idG];
     if (!gruppo) continue;
@@ -163,7 +164,7 @@ function costruisciQuotidiano(state) {
     }
   }
 
-  // 4. BACINO — dalla settimana 3
+  // 3. BACINO — dalla settimana 3
   if (fase.bacino) {
     const lat = state.assessment.esitoTest2.latoLateralizzato || "dx";
     const away = altroLato(lat);
@@ -177,6 +178,16 @@ function costruisciQuotidiano(state) {
         durataSec: ex.durataSec || 40, ripetizioni: null, carico: null,
       });
     }
+  }
+
+  // 4. COLLO — in coda, non in testa. Resta ogni giorno e non esce mai
+  // dalla rotazione, ma va dopo: al 30-40% non ha bisogno di essere
+  // fatto da freschi, e i paper mettono lo statico DOPO il riscaldamento.
+  // Nelle settimane corte se ne fanno 4 su 6, per stare nei 3 minuti che
+  // il programma gli assegna.
+  const quantiCollo = fase.minuti <= 14 ? 4 : G1.esercizi.length;
+  for (const ex of G1.esercizi.slice(0, quantiCollo)) {
+    passi.push(...espandi(ex, G1, stretto, settimana));
   }
 
   return passi;
@@ -387,6 +398,7 @@ function aggiornaStep(container, step, totale) {
   if (step.cambioLato) cambio.innerHTML = `${icona("freccia", 18)}<span>Cambia lato: ora il ${nomeLato(d.lato).toLowerCase()}</span>`;
 
   const chip = [];
+  if (d.fonte) chip.push(`<span class="pillola is-verde">${d.fonte}</span>`);
   chip.push(`<span class="pillola ${d.tag === "M" ? "is-verde" : "is-blu"}">${d.tag === "M" ? "Attivo" : "Passivo"}</span>`);
   if (d.lato) chip.push(`<span class="pillola is-blu">Lato ${nomeLato(d.lato).toLowerCase()}${d.extra ? " · extra" : ""}</span>`);
   if (d.carico) chip.push(`<span class="pillola is-arancio">${d.carico} kg</span>`);
