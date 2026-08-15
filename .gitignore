@@ -4,3 +4,4 @@ config.local.js
 .env
 *.key
 token.txt
+_ripristino.json

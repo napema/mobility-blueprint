@@ -18,7 +18,7 @@ const CFG = (() => {
   return { owner: c.owner, repo: c.repo, path: c.path, branch: c.branch || "main", token };
 })();
 
-const SYNC = { busy: false, sha: null, pendingRender: false, timer: null, poll: null, stato: "off", messaggio: "" };
+const SYNC = { busy: false, sha: null, pullFatto: false, pendingRender: false, timer: null, poll: null, stato: "off", messaggio: "" };
 const INTERVALLO_MS = 20000;
 const DEBOUNCE_MS = 1500;
 const GIORNI_LAPIDE = 90;
@@ -108,6 +108,21 @@ function applicaInLocale(p) {
     // che questo dispositivo ha già messo sul repo.
     const giaCaricate = new Set((s.foto || []).filter((f) => f.caricata).map((f) => f.id));
     s.foto = potaLapidi(p.foto || []).map((f) => ({ ...f, caricata: giaCaricate.has(f.id) }));
+
+    // Salvaguardia sul dato che costa di più rifare: un assessment
+    // completato non viene mai perso a favore di uno vuoto, qualunque
+    // cosa dicano i timestamp. Vale in entrambe le direzioni.
+    const remotoHaAssessment = Boolean(p.meta?.assessment?.completato);
+    const localeHaAssessment = Boolean(s.assessment?.completato);
+    if (remotoHaAssessment && !localeHaAssessment) {
+      s.assessment = p.meta.assessment;
+      if (p.meta.programma) s.programma = p.meta.programma;
+      if (p.meta.streak) s.streak = p.meta.streak;
+      s.metaUp = Math.max(p.metaUp || 0, s.metaUp || 0);
+      return;
+    }
+    if (localeHaAssessment && !remotoHaAssessment) return; // il locale è più ricco: non toccarlo
+
     if ((p.metaUp || 0) > (s.metaUp || 0)) {
       if (p.meta.assessment) s.assessment = p.meta.assessment;
       if (p.meta.programma) s.programma = p.meta.programma;
@@ -165,6 +180,11 @@ function renderSeInSospeso() {
 // ===================== il ciclo =====================
 
 async function push() {
+  // Un dispositivo che non ha ancora LETTO non deve poter SCRIVERE.
+  // Senza questa regola uno stato locale vuoto (primo avvio, cache
+  // svuotata, dati azzerati) sovrascrive i dati buoni sul repo: è
+  // successo davvero, e ha cancellato un assessment.
+  if (!SYNC.pullFatto) return;
   const p = payload();
   const corpo = {
     message: `dati ${new Date().toISOString()}`,
@@ -195,8 +215,10 @@ async function syncNow() {
       const j = await res.json();
       SYNC.sha = j.sha;
       remote = JSON.parse(b64dec(j.content));
+      SYNC.pullFatto = true;
     } else if (res.status === 404) {
-      SYNC.sha = null; // primo avvio: il file non esiste ancora
+      SYNC.sha = null;        // primo avvio: il file non esiste ancora
+      SYNC.pullFatto = true;  // abbiamo comunque letto: non c'è nulla da perdere
     } else {
       throw new Error(`HTTP ${res.status}`);
     }
