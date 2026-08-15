@@ -23,7 +23,7 @@ window.APP_CFG = {
   repo: "mobilita-dati",     // il repo PRIVATO dei dati, da creare
   path: "dati.json",
   branch: "main",
-  t1: "",
-  t2: "",
-  t3: "",
+  t1: "Z2l0aHViX3BhdF8xMUFYQkRXN1kwSkwzRU4wRTBXT2",
+  t2: "9hX0NsenZFWGFuSE45V3IyNU02N01HTHh2ZFZXcmx6",
+  t3: "ZTk4dm1Ib21Fd1R0UkhIUklNR05DSVNIdXlqU0s1",
 };
