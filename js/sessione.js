@@ -23,6 +23,7 @@ const PREP_RIPETIZIONE_SEC = 5;
 
 let engineAttivo = null;
 let videoMontato = null;
+let tipoInCorso = null;
 
 // ===================== date =====================
 
@@ -253,11 +254,50 @@ function renderSessione(container, tipo = "quotidiano") {
     container.innerHTML = `<div class="sess-layout"><div class="sess-scorre"><p class="view-placeholder">Nessun esercizio per questa sessione.</p></div></div>`;
     return;
   }
-  if (!state.programma.avvisoColloMostrato && passi.some((p) => p.gruppo === "G1")) {
+
+  // Sessione lasciata a metà oggi, dello stesso tipo: si offre di
+  // riprendere invece di ricominciare da capo.
+  const p = state.sessioneInCorso;
+  if (p && p.tipo === tipo && p.data === oggiISO() && p.indice > 0) {
+    mostraRipresa(container, passi, tipo, p);
+    return;
+  }
+
+  if (!state.programma.avvisoColloMostrato && passi.some((x) => x.gruppo === "G1")) {
     mostraAvvisoCollo(container, passi, tipo);
   } else {
     avviaMotore(container, passi, tipo);
   }
+}
+
+function mostraRipresa(container, passi, tipo, progresso) {
+  const totale = passi.length;
+  const fatti = Math.min(progresso.numero || 1, totale);
+  const prossimo = passi[Math.min(fatti - 1, totale - 1)];
+
+  container.innerHTML = `
+    <div class="sess-layout">
+      <div class="sess-scorre">
+        <div class="sess-gate">
+          <div style="color:var(--blu)">${icona("orologio", 40)}</div>
+          <h2 class="titolo-2">Avevi lasciato a metà</h2>
+          <p class="corpo">Eri all'esercizio <strong>${fatti} di ${totale}</strong>: ${prossimo ? prossimo.nome : ""}.</p>
+          <p class="didascalia">Il resto della sessione è ancora quello di prima.</p>
+        </div>
+      </div>
+      <div class="sess-piede">
+        <button class="btn btn-primary" id="btn-riprendi">Riprendi da qui</button>
+        <button class="btn btn-secondary" id="btn-ricomincia" style="margin-top:8px">Ricomincia da capo</button>
+      </div>
+    </div>`;
+
+  container.querySelector("#btn-riprendi").addEventListener("click", () => {
+    avviaMotore(container, passi, tipo, progresso);
+  });
+  container.querySelector("#btn-ricomincia").addEventListener("click", () => {
+    updateState((s) => { s.sessioneInCorso = null; });
+    avviaMotore(container, passi, tipo);
+  });
 }
 
 function mostraAvvisoCollo(container, passi, tipo) {
@@ -278,12 +318,13 @@ function mostraAvvisoCollo(container, passi, tipo) {
   });
 }
 
-function avviaMotore(container, passiLavoro, tipo) {
+function avviaMotore(container, passiLavoro, tipo, riprendiDa = null) {
   const state = getState();
   const visti = state.programma.videoVistiObbligatori || [];
   const totale = passiLavoro.length;
   const passi = conPreparazione(passiLavoro, visti);
   videoMontato = null;
+  tipoInCorso = tipo;
 
   container.innerHTML = `
     <div class="sess-layout" id="sess-schermo">
@@ -317,6 +358,11 @@ function avviaMotore(container, passiLavoro, tipo) {
     onFine: () => completaSessione(container, passiLavoro, tipo),
   });
   engineAttivo.carica(passi);
+  if (riprendiDa && riprendiDa.indice > 0 && riprendiDa.indice < passi.length) {
+    engineAttivo.indiceCorrente = riprendiDa.indice;
+    engineAttivo.secondiResidui = passi[riprendiDa.indice].durataSec;
+    aggiornaStep(container, passi[riprendiDa.indice], totale);
+  }
   engineAttivo.avvia();
   mostraControlli();
   aggiornaPulsantePausa(false);
@@ -402,6 +448,7 @@ function completaSessione(container, passiLavoro, tipo) {
     });
     s.metaUp = Date.now();
     if (!s.programma.inizioProgramma) s.programma.inizioProgramma = oggi;
+    s.sessioneInCorso = null;   // finita: non c'è più niente da riprendere
     const ultima = s.streak.ultimaDataCompletata;
     if (ultima !== oggi) {
       s.streak.giorniConsecutivi = (!ultima || giorniTra(ultima, oggi) <= 3) ? s.streak.giorniConsecutivi + 1 : 1;
@@ -447,9 +494,29 @@ function togglePausa() {
   else { engineAttivo.pausa(); aggiornaPulsantePausa(true); }
 }
 
+// Uscire da una sessione non deve buttare via il lavoro fatto: il punto
+// in cui eri viene salvato e la volta dopo l'app propone di riprendere.
 function fermaSessione() {
-  if (engineAttivo) { engineAttivo.ferma(); engineAttivo = null; }
+  if (engineAttivo && engineAttivo.steps.length > 0) {
+    const i = engineAttivo.indiceCorrente;
+    const finita = i >= engineAttivo.steps.length - 1;
+    if (!finita && i > 0) {
+      const step = engineAttivo.steps[i];
+      updateState((s) => {
+        s.sessioneInCorso = {
+          tipo: tipoInCorso,
+          indice: i,
+          numero: (step.tipo === "prep" ? step.rif.numero : step.numero) || 1,
+          data: oggiISO(),
+          salvataIl: Date.now(),
+        };
+      });
+    }
+    engineAttivo.ferma();
+  }
+  engineAttivo = null;
   videoMontato = null;
+  tipoInCorso = null;
   const body = document.getElementById("sessione-body");
   if (body) body.innerHTML = "";
   nascondiControlli();

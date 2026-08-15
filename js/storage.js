@@ -49,6 +49,11 @@ const DEFAULT_STATE = {
   },
   // Cosa è successo oggi: serve solo per la giornata corrente, non è storico.
   giornoCorrente: { data: null, haCorso: false, forza: null },
+  // Sessione lasciata a metà: permette di riprendere da dove si era.
+  sessioneInCorso: null,   // { tipo, indice, secondiResidui, data, salvataIl }
+  // Foto dei bersagli: qui stanno solo i riferimenti, i file stanno nel
+  // repo dei dati e i blob in IndexedDB.
+  foto: [],                // [{ id, up, bersaglioId, data, path, del? }]
   // Timestamp dell'ultima modifica alla configurazione: il sync lo usa
   // per decidere quale versione vince (last-write-wins in blocco).
   metaUp: 0,
@@ -132,6 +137,39 @@ async function salvaFoto({ bersaglioId, blob, data }) {
   });
 }
 
+// --- foto con id esplicito: è quello che permette di riconoscerle tra
+// dispositivi diversi (l'autoIncrement darebbe numeri scollegati) ---
+
+async function salvaFotoBlob(id, blob) {
+  const db = await openFotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).put({ id, blob });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function leggiFotoBlob(id) {
+  const db = await openFotoDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(IDB_STORE, "readonly");
+    const r = tx.objectStore(IDB_STORE).get(id);
+    r.onsuccess = () => resolve(r.result?.blob || null);
+    r.onerror = () => resolve(null);
+  });
+}
+
+async function elencaIdFotoLocali() {
+  const db = await openFotoDB();
+  return new Promise((resolve) => {
+    const tx = db.transaction(IDB_STORE, "readonly");
+    const r = tx.objectStore(IDB_STORE).getAllKeys();
+    r.onsuccess = () => resolve((r.result || []).map(String));
+    r.onerror = () => resolve([]);
+  });
+}
+
 async function elencaFoto(bersaglioId) {
   const db = await openFotoDB();
   return new Promise((resolve, reject) => {
@@ -200,4 +238,8 @@ function azzeraStorico() {
   });
 }
 
-export { getState, updateState, salvaFoto, elencaFoto, salvaStatoSW, azzeraTutto, azzeraStorico };
+export {
+  getState, updateState, salvaFoto, elencaFoto, salvaStatoSW,
+  salvaFotoBlob, leggiFotoBlob, elencaIdFotoLocali,
+  azzeraTutto, azzeraStorico,
+};

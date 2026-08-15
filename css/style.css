@@ -526,6 +526,13 @@ body::before {
   font-weight: 600;
 }
 
+/* Confronto fotografico: prima e ultima, affiancate. È la risposta
+   visiva alla domanda "sto migliorando?". */
+.confronto-foto { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 16px; }
+.confronto-foto figure { margin: 0; }
+.confronto-foto img { width: 100%; border-radius: var(--raggio-s); display: block; }
+.confronto-foto figcaption { font-size: 12px; color: var(--etichetta-2); text-align: center; margin-top: 4px; }
+
 /* Pallino di stato del sync: un sync silenzioso che fallisce è peggio
    di nessun sync. */
 .sync-dot { width: 9px; height: 9px; border-radius: 999px; flex: 0 0 auto; display: inline-block; }

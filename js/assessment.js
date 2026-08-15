@@ -2,7 +2,8 @@
 // portato da asimmetria-bacino-protocollo.html), Test 3 (baseline 5 bersagli).
 // Nessun contenuto sugli esercizi qui: solo raccolta e salvataggio dell'assessment.
 
-import { getState, updateState, salvaFoto, elencaFoto } from "./storage.js";
+import { getState, updateState, leggiFotoBlob } from "./storage.js";
+import { aggiungiFoto } from "./foto-sync.js";
 
 // --- Test 1: soglia (cm) oltre la quale il peggioramento in mento-al-petto /
 // dorsiflessione è considerato "netto" e quindi indicativo di tensione neurale.
@@ -446,19 +447,21 @@ function parseValoreScelta(val) {
 async function salvaFotoBersaglio(card, bersaglioId, fileInput) {
   const file = fileInput.files?.[0];
   if (!file) return;
-  const isoData = new Date().toISOString();
-  await salvaFoto({ bersaglioId, blob: file, data: isoData });
-  updateState((state) => {
-    state.assessment.baselineTest3.bersagli[bersaglioId].fotoData = isoData;
-  });
-  mostraAnteprima(card, URL.createObjectURL(file));
+  const thumb = card.querySelector(".photo-thumb");
+  thumb.textContent = "…";
+  // aggiungiFoto comprime, salva in locale e mette in coda il caricamento
+  const { blob } = await aggiungiFoto(bersaglioId, file);
+  mostraAnteprima(card, URL.createObjectURL(blob));
 }
 
+// L'ultima foto di questo bersaglio, presa dai riferimenti sincronizzati.
 async function caricaAnteprimaFoto(card, bersaglioId) {
-  const foto = await elencaFoto(bersaglioId);
-  if (foto.length === 0) return;
-  const ultima = foto[foto.length - 1];
-  mostraAnteprima(card, URL.createObjectURL(ultima.blob));
+  const record = (getState().foto || [])
+    .filter((f) => !f.del && f.bersaglioId === bersaglioId)
+    .sort((a, b) => (a.up || 0) - (b.up || 0));
+  if (record.length === 0) return;
+  const blob = await leggiFotoBlob(record[record.length - 1].id);
+  if (blob) mostraAnteprima(card, URL.createObjectURL(blob));
 }
 
 function mostraAnteprima(card, url) {

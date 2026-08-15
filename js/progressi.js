@@ -3,7 +3,7 @@
 // 2. volume per gruppo muscolare contro la soglia dei 5 min/settimana
 // 3. i cinque bersagli, con la baseline e la scadenza della prossima foto
 
-import { getState, elencaFoto } from "./storage.js";
+import { getState, leggiFotoBlob } from "./storage.js";
 import { icona } from "./icone.js";
 import { oggiISO, addGiorni, giorniTra } from "./sessione.js";
 
@@ -196,14 +196,32 @@ async function renderBersagli(container, state) {
     nota.textContent = "Aggiungi le foto baseline dall'assessment: sono il termine di paragone per capire se stai migliorando.";
   }
 
-  // anteprime dall'archivio foto
+  // Anteprime: la più recente e, se c'è, la prima — è il confronto che
+  // serve davvero fra tre settimane.
   for (const b of BERSAGLI) {
-    const foto = await elencaFoto(b.id);
-    if (foto.length === 0) continue;
+    const record = (state.foto || [])
+      .filter((f) => !f.del && f.bersaglioId === b.id)
+      .sort((a, b2) => (a.up || 0) - (b2.up || 0));
+    if (record.length === 0) continue;
+
     const riquadro = elenco.querySelector(`[data-bersaglio="${b.id}"] .bersaglio__foto`);
     if (!riquadro) continue;
+    const ultima = await leggiFotoBlob(record[record.length - 1].id);
+    if (!ultima) continue;
     riquadro.innerHTML = "";
-    riquadro.style.backgroundImage = `url("${URL.createObjectURL(foto[foto.length - 1].blob)}")`;
+    riquadro.style.backgroundImage = `url("${URL.createObjectURL(ultima)}")`;
+
+    if (record.length > 1) {
+      const prima = await leggiFotoBlob(record[0].id);
+      if (!prima) continue;
+      const riga = elenco.querySelector(`[data-bersaglio="${b.id}"]`);
+      const confronto = document.createElement("div");
+      confronto.className = "confronto-foto";
+      confronto.innerHTML = `
+        <figure><img src="${URL.createObjectURL(prima)}" alt=""><figcaption>${record[0].data.slice(0, 10)}</figcaption></figure>
+        <figure><img src="${URL.createObjectURL(ultima)}" alt=""><figcaption>${record[record.length - 1].data.slice(0, 10)}</figcaption></figure>`;
+      riga.insertAdjacentElement("afterend", confronto);
+    }
   }
 }
 

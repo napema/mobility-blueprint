@@ -51,6 +51,11 @@ function payload() {
   const st = getState();
   return {
     records: (st.storicoSessioni || []).map((s) => ({ ...s, id: idSessione(s), up: s.up || 0 })),
+    // I riferimenti alle foto viaggiano qui; i file veri stanno in
+    // foto/<id>.jpg nello stesso repo (vedi foto-sync.js).
+    // `caricata` è un dettaglio locale: non deve entrare nel confronto,
+    // altrimenti due dispositivi si rimbalzano PUT a vicenda per sempre.
+    foto: (st.foto || []).map(({ caricata, ...f }) => f),
     meta: {
       assessment: st.assessment,
       programma: st.programma,
@@ -64,10 +69,15 @@ function payload() {
 // fantasma e fa una PUT inutile — un commit ogni 20 secondi, per sempre.
 function snapshot(p) {
   if (!p) return "";
-  const rec = [...(p.records || [])]
-    .map((r) => ({ ...r }))
+  const ordina = (arr) => [...(arr || [])]
+    .map(({ caricata, ...r }) => r)
     .sort((a, b) => String(a.id).localeCompare(String(b.id)));
-  return JSON.stringify({ records: rec, meta: p.meta, metaUp: p.metaUp });
+  return JSON.stringify({
+    records: ordina(p.records),
+    foto: ordina(p.foto),
+    meta: p.meta,
+    metaUp: p.metaUp,
+  });
 }
 
 function mergeRecords(local, remote) {
@@ -94,6 +104,10 @@ function sessioniVive(records) {
 function applicaInLocale(p) {
   updateState((s) => {
     s.storicoSessioni = sessioniVive(potaLapidi(p.records));
+    // Il flag `caricata` è locale: si conserva per non ricaricare file
+    // che questo dispositivo ha già messo sul repo.
+    const giaCaricate = new Set((s.foto || []).filter((f) => f.caricata).map((f) => f.id));
+    s.foto = potaLapidi(p.foto || []).map((f) => ({ ...f, caricata: giaCaricate.has(f.id) }));
     if ((p.metaUp || 0) > (s.metaUp || 0)) {
       if (p.meta.assessment) s.assessment = p.meta.assessment;
       if (p.meta.programma) s.programma = p.meta.programma;
@@ -191,9 +205,9 @@ async function syncNow() {
 
     if (remote) {
       const locale = payload();
-      const uniti = potaLapidi(mergeRecords(locale.records, remote.records));
       applicaInLocale({
-        records: uniti,
+        records: potaLapidi(mergeRecords(locale.records, remote.records)),
+        foto: potaLapidi(mergeRecords(locale.foto, remote.foto)),
         meta: remote.meta || locale.meta,
         metaUp: remote.metaUp || 0,
       });
@@ -205,6 +219,9 @@ async function syncNow() {
 
     SYNC.ultimo = new Date().toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
     setSyncState("ok");
+
+    // Le foto viaggiano a parte: sono file, non righe di JSON.
+    import("./foto-sync.js").then((m) => m.sincronizzaFoto()).catch(() => {});
   } catch (e) {
     setSyncState("err", e.message);
   } finally {
