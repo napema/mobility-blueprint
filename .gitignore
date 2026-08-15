@@ -1,0 +1,5 @@
+
+# Non committare mai i segreti
+config.local.js
+.env
+*.key

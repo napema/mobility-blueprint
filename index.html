@@ -17,6 +17,7 @@
 <link rel="icon" href="icons/icon-192.png">
 
 <link rel="stylesheet" href="css/style.css">
+<script src="config.js"></script>
 </head>
 <body>
 
@@ -25,7 +26,10 @@
   <header class="app-header">
     <div class="app-header__interno">
       <span class="app-header__title">Mobilità</span>
-      <span class="app-header__streak" id="streak-indicator" title="Giorni consecutivi"></span>
+      <span style="display:flex;align-items:center;gap:10px">
+        <span class="app-header__streak" id="streak-indicator" title="Giorni consecutivi"></span>
+        <span class="sync-dot is-off" id="sync-dot" title="Sync non configurato"></span>
+      </span>
     </div>
   </header>
 
@@ -51,11 +55,31 @@
       </ul>
 
       <div class="vetro scheda" style="margin-top:16px">
-        <div class="scheda__testa"><span class="occhiello">Promemoria serale</span></div>
+        <div class="scheda__testa">
+          <span class="occhiello">Sincronizzazione</span>
+          <span class="sync-dot is-off" id="sync-dot-settings" style="margin-left:auto"></span>
+        </div>
+        <p class="didascalia" id="sync-stato" style="margin-bottom:12px"></p>
+        <button class="btn btn-secondary" id="btn-sync-ora">Sincronizza adesso</button>
+        <button class="btn btn-secondary" id="btn-svuota-cache" style="margin-top:8px">Svuota cache e ricarica</button>
+        <p class="didascalia" style="margin-top:12px">
+          I dati stanno in un repo privato su GitHub: è quello che li fa comparire anche sugli altri dispositivi.
+          Se una versione vecchia resta incastrata, "svuota cache" è la via d'uscita.
+        </p>
+      </div>
+
+      <div class="vetro scheda">
+        <div class="scheda__testa"><span class="occhiello">Promemoria</span></div>
         <p class="didascalia" id="notifiche-stato" style="margin-bottom:12px"></p>
         <button class="btn btn-secondary" id="btn-attiva-notifiche">Attiva le notifiche</button>
-        <button class="btn btn-secondary" id="btn-prova-notifica" style="margin-top:8px" hidden>Mandami una notifica di prova</button>
-        <button class="btn btn-secondary" id="btn-copia-iscrizione" style="margin-top:8px" hidden>Copia l'iscrizione push</button>
+        <button class="btn btn-secondary" id="btn-prova-notifica" style="margin-top:8px" hidden>Notifica di prova</button>
+        <div id="sub-blocco" hidden style="margin-top:12px">
+          <p class="didascalia" style="margin-bottom:8px">
+            Copia questo testo e incollalo nel secret <strong>PUSH_SUBSCRIPTION</strong> del repo. Una volta sola.
+          </p>
+          <textarea id="subOut" rows="5" readonly class="campo-testo"></textarea>
+          <button class="btn btn-secondary" id="btn-copia-sub" style="margin-top:8px">Copia negli appunti</button>
+        </div>
         <p class="didascalia" id="notifiche-nota" style="margin-top:12px"></p>
       </div>
 

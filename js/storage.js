@@ -49,6 +49,9 @@ const DEFAULT_STATE = {
   },
   // Cosa è successo oggi: serve solo per la giornata corrente, non è storico.
   giornoCorrente: { data: null, haCorso: false, forza: null },
+  // Timestamp dell'ultima modifica alla configurazione: il sync lo usa
+  // per decidere quale versione vince (last-write-wins in blocco).
+  metaUp: 0,
   storicoSessioni: [],       // [{ data, tipo: "reset+micro"|"carico", durataSec, esercizi: [...] }]
   streak: {
     giorniConsecutivi: 0,

@@ -76,8 +76,12 @@ function renderAssessment(container) {
   container.querySelector("#btn-completa-assessment").addEventListener("click", () => {
     updateState((state) => {
       state.assessment.completato = true;
+      state.metaUp = Date.now();
     });
     document.getElementById("view-assessment").hidden = true;
+    document.body.style.overflow = "";
+    document.dispatchEvent(new CustomEvent("dati-cambiati"));
+    document.dispatchEvent(new CustomEvent("overlay-chiuso"));
   });
 
   mostraParte(container, "test1");

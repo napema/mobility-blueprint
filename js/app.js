@@ -8,6 +8,7 @@ import { renderProgressi } from "./progressi.js";
 import { renderAssessment } from "./assessment.js";
 import { renderSessione, togglePausa, fermaSessione, settimanaEffettiva } from "./sessione.js";
 import * as notifiche from "./notifiche.js";
+import * as sync from "./sync.js";
 
 const TAB_VIEWS = ["oggi", "progressi", "impostazioni"];
 
@@ -37,6 +38,7 @@ function chiudiOverlay(nome) {
   if (nome === "sessione") fermaSessione();
   aggiornaStreak();
   renderOggi(document.getElementById("oggi-body"));
+  document.dispatchEvent(new CustomEvent("overlay-chiuso"));
 }
 
 function aggiornaStreak() {
@@ -67,23 +69,24 @@ function aggiornaStatoNotifiche() {
   const nota = document.getElementById("notifiche-nota");
   const attiva = document.getElementById("btn-attiva-notifiche");
   const prova = document.getElementById("btn-prova-notifica");
-  const copia = document.getElementById("btn-copia-iscrizione");
   if (!testo) return;
 
   const messaggi = {
-    "non-supportate": "Questo browser non supporta le notifiche.",
-    default: "Non ancora attivate. Servono per ricordarti la sessione se a fine serata non l'hai fatta.",
-    granted: `Attive. Promemoria alle ${getState().programma.oraPromemoria}, solo se la sessione di oggi non risulta fatta.`,
+    "non-supportate": "Questo browser non supporta le notifiche push.",
+    default: "Non ancora attivate. Servono a ricordarti la sessione se a fine serata non l'hai fatta.",
+    granted: "Attive. Promemoria alle 21:15, e alle 22:15 la dose da 2 minuti se non hai ancora fatto.",
     denied: "Bloccate dal browser: vanno riattivate dalle impostazioni del sito.",
   };
   testo.textContent = messaggi[stato] || "";
   attiva.hidden = stato === "granted" || stato === "non-supportate";
   prova.hidden = stato !== "granted";
-  copia.hidden = stato !== "granted";
 
-  nota.innerHTML = notifiche.VAPID_PUBLIC_KEY
-    ? "Il promemoria ad app chiusa viene inviato dal workflow GitHub Actions del repo."
-    : "<strong>Manca un passaggio:</strong> per ricevere il promemoria ad app chiusa servono le chiavi VAPID e il workflow GitHub Actions (istruzioni in README-notifiche.md). Senza, la notifica funziona solo con l'app aperta o su Android.";
+  // Su iOS il push esiste solo con la PWA installata dalla Home: dirlo
+  // prima evita mezz'ora persa a chiedersi perché non arriva niente.
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  nota.innerHTML = (iOS && !notifiche.installata())
+    ? "<strong>Prima aggiungi l'app alla schermata Home.</strong> Su iPhone, in Safari come scheda normale il push non funziona: Condividi → Aggiungi alla schermata Home, poi apri dall'icona."
+    : "Il promemoria ad app chiusa lo invia il workflow GitHub Actions del repo. Serve il secret PUSH_SUBSCRIPTION, che si ottiene qui sotto.";
 }
 
 function disegnaIcone() {
@@ -112,28 +115,34 @@ function initNavigazione() {
 
   initAzzeramento();
 
+  // Il permesso DEVE partire da un tap: chiesto al caricamento, iOS lo
+  // rifiuta in silenzio e non si può più richiedere.
   document.getElementById("btn-attiva-notifiche").addEventListener("click", async () => {
-    await notifiche.chiediPermesso();
+    const esito = await notifiche.attivaNotifiche();
     aggiornaStatoNotifiche();
+    if (!esito.ok) return;
+    const blocco = document.getElementById("sub-blocco");
+    const area = document.getElementById("subOut");
+    blocco.hidden = false;
+    area.value = esito.iscrizione;
+    try { await navigator.clipboard.writeText(esito.iscrizione); } catch { /* resta da copiare a mano */ }
   });
 
   document.getElementById("btn-prova-notifica").addEventListener("click", () => notifiche.provaNotifica());
 
-  document.getElementById("btn-copia-iscrizione").addEventListener("click", async () => {
-    const esito = await notifiche.iscriviPush();
-    const nota = document.getElementById("notifiche-nota");
-    if (!esito.ok) {
-      nota.innerHTML = "<strong>Chiave VAPID mancante</strong>: generala e incollala in js/notifiche.js (vedi README-notifiche.md).";
-      return;
-    }
-    const testo = JSON.stringify(esito.iscrizione);
+  document.getElementById("btn-copia-sub").addEventListener("click", async () => {
+    const area = document.getElementById("subOut");
+    area.select();
     try {
-      await navigator.clipboard.writeText(testo);
-      nota.textContent = "Iscrizione copiata. Incollala nel secret PUSH_SUBSCRIPTION del repo.";
-    } catch {
-      nota.textContent = testo;
-    }
+      await navigator.clipboard.writeText(area.value);
+      const b = document.getElementById("btn-copia-sub");
+      b.textContent = "Copiato";
+      setTimeout(() => { b.textContent = "Copia negli appunti"; }, 2000);
+    } catch { /* la textarea è già selezionata */ }
   });
+
+  document.getElementById("btn-sync-ora").addEventListener("click", () => sync.syncNow());
+  document.getElementById("btn-svuota-cache").addEventListener("click", () => sync.svuotaCacheERicarica());
 }
 
 // Azzeramento a due livelli, entrambi protetti: lo storico si cancella
@@ -209,6 +218,16 @@ function initServiceWorker() {
   }
 }
 
+// Il sync porta dati nuovi anche mentre l'app è aperta: qui si decide
+// come ridisegnare senza strappare l'interfaccia sotto le dita.
+function ridisegnaDopoSync() {
+  aggiornaStreak();
+  const oggiVisibile = !document.getElementById("view-oggi").hidden;
+  if (oggiVisibile) renderOggi(document.getElementById("oggi-body"));
+  const progressiVisibile = !document.getElementById("view-progressi").hidden;
+  if (progressiVisibile) renderProgressi(document.getElementById("progressi-body"));
+}
+
 function init() {
   disegnaIcone();
   initNavigazione();
@@ -216,6 +235,12 @@ function init() {
   renderOggi(document.getElementById("oggi-body"));
   initServiceWorker();
   initAssessmentAlPrimoAvvio();
+
+  sync.initSync(ridisegnaDopoSync);
+  // Ogni modifica locale fa partire una push in debounce.
+  document.addEventListener("dati-cambiati", () => sync.segnalaModifica());
+  // Alla chiusura di un overlay si recupera il ridisegno rimandato.
+  document.addEventListener("overlay-chiuso", () => sync.renderSeInSospeso());
 }
 
 document.addEventListener("DOMContentLoaded", init);

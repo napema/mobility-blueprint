@@ -288,7 +288,7 @@ nessuna parte.
 
 ```
 VAPID_PUBLIC_KEY  = BEF9vuHSz44QFNV_jFvlgimpwx0sKdpiW7hStEXAWoUx8LtQo78VLjS76_D-dJGKOfVrkMa-kbuyzrxwG77FXuo
-VAPID_PRIVATE_KEY = 1-GZLU9S02vukOmk7Fq2_1X9HNbUl5m0GVcbmRFVKAM
+VAPID_PRIVATE_KEY = <RIMOSSA — va SOLO nei GitHub Secrets, mai in un file committato>
 VAPID_SUBJECT     = mailto:<la tua email>
 ```
 

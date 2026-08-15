@@ -1,7 +1,7 @@
 // sw.js — cache dell'app shell per l'uso offline (la sessione serale non può
 // dipendere dalla rete). Cache-first con fallback di rete, versionata a mano.
 
-const CACHE_NAME = "mobilita-shell-v8";
+const CACHE_NAME = "mobilita-shell-v9";
 
 const APP_SHELL = [
   "./",
@@ -18,6 +18,8 @@ const APP_SHELL = [
   "./js/assessment.js",
   "./js/progressi.js",
   "./js/notifiche.js",
+  "./js/sync.js",
+  "./config.js",
   "./anteprima-video.html",
   "./fonts/sf-pro-text-regular.woff2",
   "./fonts/sf-pro-text-medium.woff2",
@@ -76,22 +78,33 @@ function oggiLocale() {
 }
 
 self.addEventListener("push", (event) => {
+  let dati = {};
+  try { dati = event.data.json(); } catch { dati = { title: "Mobilità" }; }
+
   event.waitUntil((async () => {
     const stato = await leggiStato();
-    if (stato && stato.ultimaSessione === oggiLocale()) {
-      // già fatta: nessun promemoria, ma il push va comunque consumato
-      return self.registration.showNotification("Mobilità", {
-        body: "Sessione di oggi già fatta. Nulla da fare.",
-        tag: "promemoria-giornaliero",
+    const fatta = stato && stato.ultimaSessione === oggiLocale();
+
+    // Se la sessione è già fatta si CAMBIA il messaggio, non lo si
+    // sopprime: sopprimere del tutto può far comparire la notifica
+    // generica di sistema "questo sito è stato aggiornato".
+    if (fatta && (dati.tag === "recupero" || dati.tag === "principale")) {
+      return self.registration.showNotification("Fatto per oggi", {
+        body: "Sessione completata. Ci vediamo domani.",
+        tag: dati.tag,
+        icon: "icons/icon-192.png",
+        badge: "icons/icon-192.png",
         silent: true,
-        data: { url: "./index.html" },
+        data: { url: dati.url || "./index.html" },
       });
     }
-    return self.registration.showNotification("Mobilità", {
-      body: "Non hai ancora fatto la sessione di oggi. Bastano pochi minuti.",
-      tag: "promemoria-giornaliero",
-      requireInteraction: false,
-      data: { url: "./index.html" },
+
+    return self.registration.showNotification(dati.title || "Mobilità", {
+      body: dati.body || "",
+      tag: dati.tag || "mobilita",
+      icon: "icons/icon-192.png",
+      badge: "icons/icon-192.png",
+      data: { url: dati.url || "./index.html" },
     });
   })());
 });
@@ -112,7 +125,11 @@ self.addEventListener("notificationclick", (event) => {
 // senza svuotare la cache a mano), offline si serve l'ultima copia buona.
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-  if (new URL(event.request.url).origin !== self.location.origin) return;
+  const url = new URL(event.request.url);
+  // Le chiamate a GitHub non si toccano MAI: cacharle significherebbe
+  // sincronizzare con dati vecchi. Stesso discorso per ogni altra origine.
+  if (url.hostname === "api.github.com") return;
+  if (url.origin !== self.location.origin) return;
 
   event.respondWith(
     fetch(event.request)

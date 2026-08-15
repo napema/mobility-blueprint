@@ -393,11 +393,14 @@ function completaSessione(container, passiLavoro, tipo) {
   }
 
   updateState((s) => {
+    // id stabile e `up`: servono al merge per record del sync.
     s.storicoSessioni.push({
+      id: `${oggi}|${tipo}`, up: Date.now(),
       data: oggi, tipo, durataSec: durata,
       esercizi: [...new Set(passiLavoro.map((p) => p.idEsercizio))],
       volumePerGruppo: volume,
     });
+    s.metaUp = Date.now();
     if (!s.programma.inizioProgramma) s.programma.inizioProgramma = oggi;
     const ultima = s.streak.ultimaDataCompletata;
     if (ultima !== oggi) {
@@ -407,6 +410,7 @@ function completaSessione(container, passiLavoro, tipo) {
   });
 
   salvaStatoSW({ ultimaSessione: oggi, oraPromemoria: getState().programma.oraPromemoria });
+  document.dispatchEvent(new CustomEvent("dati-cambiati"));
   engineAttivo = null;
   videoMontato = null;
   nascondiControlli();

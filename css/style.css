@@ -526,6 +526,26 @@ body::before {
   font-weight: 600;
 }
 
+/* Pallino di stato del sync: un sync silenzioso che fallisce è peggio
+   di nessun sync. */
+.sync-dot { width: 9px; height: 9px; border-radius: 999px; flex: 0 0 auto; display: inline-block; }
+.sync-dot.is-off { background: var(--etichetta-3); }
+.sync-dot.is-corso { background: var(--arancio); }
+.sync-dot.is-ok { background: var(--verde); }
+.sync-dot.is-err { background: var(--rosso); }
+
+.campo-testo {
+  width: 100%;
+  padding: 10px 14px;
+  border: 0.5px solid var(--separatore);
+  border-radius: var(--raggio-s);
+  background: var(--sfondo-2);
+  color: var(--etichetta);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
 /* Zona di azzeramento */
 .zona-pericolo { border-color: rgba(255, 59, 48, 0.35); }
 .btn-pericolo { background: rgba(255, 59, 48, 0.14); color: var(--rosso); }
