@@ -50,7 +50,12 @@ function idSessione(s) {
 function payload() {
   const st = getState();
   return {
-    records: (st.storicoSessioni || []).map((s) => ({ ...s, id: idSessione(s), up: s.up || 0 })),
+    // Sessioni vive + lapidi: le lapidi devono viaggiare, altrimenti
+    // l'altro dispositivo non sa che quel record è stato cancellato.
+    records: [
+      ...(st.storicoSessioni || []).map((s) => ({ ...s, id: idSessione(s), up: s.up || 0 })),
+      ...(st.lapidi || []),
+    ],
     // I riferimenti alle foto viaggiano qui; i file veri stanno in
     // foto/<id>.jpg nello stesso repo (vedi foto-sync.js).
     // `caricata` è un dettaglio locale: non deve entrare nel confronto,
@@ -103,7 +108,9 @@ function sessioniVive(records) {
 
 function applicaInLocale(p) {
   updateState((s) => {
-    s.storicoSessioni = sessioniVive(potaLapidi(p.records));
+    const tutti = potaLapidi(p.records);
+    s.storicoSessioni = tutti.filter((r) => !r.del);
+    s.lapidi = tutti.filter((r) => r.del);   // conservate, non buttate
     // Il flag `caricata` è locale: si conserva per non ricaricare file
     // che questo dispositivo ha già messo sul repo.
     const giaCaricate = new Set((s.foto || []).filter((f) => f.caricata).map((f) => f.id));
@@ -112,9 +119,14 @@ function applicaInLocale(p) {
     // Salvaguardia sul dato che costa di più rifare: un assessment
     // completato non viene mai perso a favore di uno vuoto, qualunque
     // cosa dicano i timestamp. Vale in entrambe le direzioni.
+    // La salvaguardia vale solo per un dispositivo che non ha MAI
+    // scritto (metaUp a zero): è lì che lo stato vuoto è un caso da
+    // proteggere. Se invece hai azzerato apposta, metaUp è recente e
+    // l'azzeramento deve poter viaggiare.
     const remotoHaAssessment = Boolean(p.meta?.assessment?.completato);
     const localeHaAssessment = Boolean(s.assessment?.completato);
-    if (remotoHaAssessment && !localeHaAssessment) {
+    const localeMaiScritto = !(s.metaUp > 0);
+    if (remotoHaAssessment && !localeHaAssessment && localeMaiScritto) {
       s.assessment = p.meta.assessment;
       if (p.meta.programma) s.programma = p.meta.programma;
       if (p.meta.streak) s.streak = p.meta.streak;

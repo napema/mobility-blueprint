@@ -54,6 +54,10 @@ const DEFAULT_STATE = {
   // Foto dei bersagli: qui stanno solo i riferimenti, i file stanno nel
   // repo dei dati e i blob in IndexedDB.
   foto: [],                // [{ id, up, bersaglioId, data, path, del? }]
+  // Lapidi delle sessioni cancellate. Devono sopravvivere in locale:
+  // se si perdono, al primo sync il repo rimanda indietro i record e la
+  // cancellazione si annulla da sola.
+  lapidi: [],              // [{ id, del: true, up }]
   // Timestamp dell'ultima modifica alla configurazione: il sync lo usa
   // per decidere quale versione vince (last-write-wins in blocco).
   metaUp: 0,
@@ -228,14 +232,27 @@ async function azzeraTutto() {
 
 // Azzera solo lo storico delle sessioni: utile dopo aver fatto prove,
 // senza perdere l'assessment che è costato tempo.
+//
+// Ogni sessione cancellata lascia una LAPIDE: senza, il sync la
+// rimanderebbe indietro al primo giro e la cancellazione si annullerebbe
+// da sola (è esattamente quello che succedeva).
 function azzeraStorico() {
   updateState((s) => {
+    const ora = Date.now();
+    const nuove = (s.storicoSessioni || []).map((x) => ({
+      id: x.id || `${x.data}|${x.tipo}`, del: true, up: ora,
+    }));
+    s.lapidi = [...(s.lapidi || []), ...nuove];
     s.storicoSessioni = [];
     s.streak = { giorniConsecutivi: 0, ultimaDataCompletata: null };
     s.volumePerGruppo = {};
     s.programma.inizioProgramma = null;
     s.giornoCorrente = { data: null, haCorso: false, forza: null };
+    s.sessioneInCorso = null;
+    s.metaUp = ora;
   });
+  // fa partire la spinta verso il repo, così sparisce anche dagli altri
+  document.dispatchEvent(new CustomEvent("dati-cambiati"));
 }
 
 export {

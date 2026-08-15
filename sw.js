@@ -1,7 +1,7 @@
 // sw.js — cache dell'app shell per l'uso offline (la sessione serale non può
 // dipendere dalla rete). Cache-first con fallback di rete, versionata a mano.
 
-const CACHE_NAME = "mobilita-shell-v11";
+const CACHE_NAME = "mobilita-shell-v12";
 
 const APP_SHELL = [
   "./",
