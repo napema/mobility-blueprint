@@ -18,7 +18,7 @@ const CFG = (() => {
   return { owner: c.owner, repo: c.repo, path: c.path, branch: c.branch || "main", token };
 })();
 
-const SYNC = { busy: false, sha: null, pendingRender: false, timer: null, stato: "off", messaggio: "" };
+const SYNC = { busy: false, sha: null, pendingRender: false, timer: null, poll: null, stato: "off", messaggio: "" };
 const INTERVALLO_MS = 20000;
 const DEBOUNCE_MS = 1500;
 const GIORNI_LAPIDE = 90;
@@ -231,13 +231,38 @@ function cancellaSessione(id) {
   segnalaModifica();
 }
 
+// Promessa risolta dopo il PRIMO giro di sync. Serve a chi deve decidere
+// qualcosa sullo stato: su un dispositivo nuovo lo stato locale è vuoto,
+// e leggerlo prima che i dati arrivino porta a conclusioni sbagliate
+// (per esempio: "l'assessment non è stato fatto").
+let risolviPrimo;
+const primoSync = new Promise((r) => { risolviPrimo = r; });
+
+function primoSyncCompletato(timeoutMs = 5000) {
+  // Il timeout evita che una rete lenta blocchi l'avvio dell'app.
+  return Promise.race([primoSync, new Promise((r) => setTimeout(r, timeoutMs))]);
+}
+
 function initSync(onRender) {
   renderCb = onRender || (() => {});
-  if (!configurato()) { setSyncState("off"); return; }
-  syncNow();
-  setInterval(syncNow, INTERVALLO_MS);
-  window.addEventListener("focus", syncNow);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) syncNow(); });
+  if (!configurato()) { setSyncState("off"); risolviPrimo(); return; }
+
+  syncNow().finally(() => risolviPrimo());
+
+  // Polling solo quando l'app è davvero visibile: in background il
+  // timer verrebbe comunque sospeso dal sistema, e tenerlo acceso
+  // consuma batteria senza sincronizzare niente.
+  clearInterval(SYNC.poll);
+  SYNC.poll = setInterval(() => { if (!document.hidden) syncNow(); }, INTERVALLO_MS);
+
+  // I momenti in cui serve un sync IMMEDIATO, senza aspettare il giro:
+  // sono quelli in cui l'utente torna sull'app dopo aver fatto qualcosa
+  // altrove, ed è lì che il ritardo si nota.
+  const subito = () => { if (!document.hidden) syncNow(); };
+  window.addEventListener("focus", subito);
+  document.addEventListener("visibilitychange", subito);
+  window.addEventListener("pageshow", subito);   // ritorno dalla cache di iOS
+  window.addEventListener("online", subito);     // rete tornata
 }
 
 // Unica via d'uscita quando una versione vecchia resta incastrata.
@@ -253,5 +278,5 @@ async function svuotaCacheERicarica() {
 
 export {
   initSync, syncNow, segnalaModifica, cancellaSessione, renderSeInSospeso,
-  svuotaCacheERicarica, configurato, SYNC,
+  svuotaCacheERicarica, configurato, primoSyncCompletato, SYNC,
 };

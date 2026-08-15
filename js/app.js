@@ -204,8 +204,29 @@ function initAzzeramento() {
   });
 }
 
-function initAssessmentAlPrimoAvvio() {
-  if (!getState().assessment.completato) apriOverlay("assessment");
+// L'assessment va proposto solo DOPO che il primo sync è arrivato: su un
+// dispositivo nuovo lo stato locale è vuoto e risulterebbe da fare anche
+// se è già stato completato altrove.
+let assessmentAutoAperto = false;
+
+async function initAssessmentAlPrimoAvvio() {
+  await sync.primoSyncCompletato();
+  if (!getState().assessment.completato) {
+    assessmentAutoAperto = true;
+    apriOverlay("assessment");
+  }
+}
+
+// Se l'assessment arriva da un altro dispositivo mentre l'overlay è
+// aperto da solo, si chiude: non ha più senso chiederlo.
+function chiudiAssessmentSeArrivatoDaSync() {
+  if (!assessmentAutoAperto) return;
+  const overlay = document.getElementById("view-assessment");
+  if (overlay.hidden || !getState().assessment.completato) return;
+  const a = document.activeElement;
+  if (a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) return; // sta scrivendo
+  assessmentAutoAperto = false;
+  chiudiOverlay("assessment");
 }
 
 function initServiceWorker() {
@@ -221,6 +242,7 @@ function initServiceWorker() {
 // Il sync porta dati nuovi anche mentre l'app è aperta: qui si decide
 // come ridisegnare senza strappare l'interfaccia sotto le dita.
 function ridisegnaDopoSync() {
+  chiudiAssessmentSeArrivatoDaSync();
   aggiornaStreak();
   const oggiVisibile = !document.getElementById("view-oggi").hidden;
   if (oggiVisibile) renderOggi(document.getElementById("oggi-body"));
