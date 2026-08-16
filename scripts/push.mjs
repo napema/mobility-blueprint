@@ -16,15 +16,30 @@ const {
   DATI_TOKEN, DATI_REPO, FORZA,
 } = process.env;
 
+// `::error::` fa comparire il messaggio nel riquadro Annotations della
+// pagina del run: senza, si legge solo "exit code 1" e il motivo resta
+// sepolto nel log, da aprire a mano.
+const errore = (m) => console.log(`::error::${m}`);
+const avviso = (m) => console.log(`::warning::${m}`);
+
 // Un run verde che non ha inviato niente è peggio di un run rosso:
 // sembra che funzioni. Se manca un secret, si fallisce e si vede.
 const mancanti = [];
-if (!VAPID_PRIVATE_KEY) mancanti.push("VAPID_PRIVATE_KEY");
 if (!VAPID_PUBLIC_KEY) mancanti.push("VAPID_PUBLIC_KEY");
+if (!VAPID_PRIVATE_KEY) mancanti.push("VAPID_PRIVATE_KEY");
 if (!PUSH_SUBSCRIPTION) mancanti.push("PUSH_SUBSCRIPTION");
+
+// Diagnostica di cosa c'è e cosa no, senza mai stampare i valori.
+console.log("Secret presenti:", [
+  `VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY ? "sì" : "NO"}`,
+  `VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY ? "sì" : "NO"}`,
+  `PUSH_SUBSCRIPTION=${PUSH_SUBSCRIPTION ? "sì" : "NO"}`,
+  `VAPID_SUBJECT=${VAPID_SUBJECT ? "sì" : "no (uso il predefinito)"}`,
+  `DATI_TOKEN=${DATI_TOKEN ? "sì" : "no (uso gli orari predefiniti)"}`,
+].join(" · "));
+
 if (mancanti.length) {
-  console.error("SECRET MANCANTI:", mancanti.join(", "));
-  console.error("Senza questi non parte nessuna notifica. Vedi SETUP.md, sezione B1.");
+  errore(`Secret mancanti: ${mancanti.join(", ")} — senza questi non parte nessuna notifica. Istruzioni in ATTIVA-NOTIFICHE.md.`);
   process.exit(1);
 }
 
@@ -33,10 +48,17 @@ webpush.setVapidDetails(VAPID_SUBJECT || "mailto:napema03@icloud.com", VAPID_PUB
 let sub;
 try {
   sub = JSON.parse(PUSH_SUBSCRIPTION);
-  if (!sub.endpoint) throw new Error("manca endpoint");
+  if (!sub.endpoint) throw new Error("manca il campo endpoint");
 } catch (e) {
-  console.error("PUSH_SUBSCRIPTION non è un JSON valido:", e.message);
+  errore(`PUSH_SUBSCRIPTION non è valido (${e.message}). Deve iniziare con {"endpoint": e stare tutto su una riga.`);
   process.exit(1);
+}
+
+// Il telefono si iscrive con la chiave pubblica di config.js: se qui ne
+// arriva un'altra, l'invio fallisce con 403 e sembra un problema del
+// telefono. Meglio dirlo prima.
+if (sub.endpoint.includes("web.push.apple.com")) {
+  console.log("Endpoint Apple: la PWA risulta installata dalla Home. Bene.");
 }
 
 // ---------- orari scelti dall'utente, letti dal repo dei dati ----------
@@ -124,17 +146,23 @@ if (!msg && FORZA === "1") {
 }
 
 if (!msg) {
-  console.log("Nessuna notifica dovuta in questa finestra.");
+  console.log(`::notice::Nessuna notifica dovuta alle ${oraRoma}. Tutto a posto: era solo fuori orario. Per provare subito, rilancia con forza=1.`);
   process.exit(0);
 }
 
 try {
   await webpush.sendNotification(sub, JSON.stringify(msg));
-  console.log("INVIATA:", msg.tag, "->", msg.title);
+  console.log(`::notice::Inviata: ${msg.tag} — "${msg.title}"`);
 } catch (e) {
-  console.error("ERRORE invio:", e.statusCode, e.body);
-  if (e.statusCode === 410 || e.statusCode === 404) {
-    console.error("Subscription scaduta o non valida: riattiva le notifiche dall'app e aggiorna PUSH_SUBSCRIPTION.");
+  const codice = e.statusCode;
+  let spiegazione = e.body || e.message;
+  if (codice === 410 || codice === 404) {
+    spiegazione = "Subscription scaduta o non più valida. Riattiva le notifiche dall'app (aperta dall'icona sulla Home) e aggiorna il secret PUSH_SUBSCRIPTION.";
+  } else if (codice === 403) {
+    spiegazione = "Chiavi VAPID non corrispondenti: VAPID_PUBLIC_KEY deve essere identica al campo vapidPublic di config.js, e la privata deve essere quella nata con lei.";
+  } else if (codice === 400) {
+    spiegazione = "Richiesta rifiutata dal servizio push: di solito è la subscription incollata male.";
   }
+  errore(`Invio fallito (HTTP ${codice}). ${spiegazione}`);
   process.exit(1);
 }

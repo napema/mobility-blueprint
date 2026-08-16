@@ -80,6 +80,8 @@ function aggiornaStatoNotifiche() {
   testo.textContent = messaggi[stato] || "";
   attiva.hidden = stato === "granted" || stato === "non-supportate";
   prova.hidden = stato !== "granted";
+  const reimposta = document.getElementById("btn-reimposta-iscrizione");
+  if (reimposta) reimposta.hidden = stato !== "granted";
   riempiOrariNotifiche();
 
   // Su iOS il push esiste solo con la PWA installata dalla Home: dirlo
@@ -130,6 +132,20 @@ function initNavigazione() {
   });
 
   document.getElementById("btn-prova-notifica").addEventListener("click", () => notifiche.provaNotifica());
+
+  // Serve dopo aver cambiato le chiavi VAPID: l'iscrizione vecchia resta
+  // legata alla chiave con cui è nata e il server la rifiuta con 403.
+  document.getElementById("btn-reimposta-iscrizione").addEventListener("click", async () => {
+    const esito = await notifiche.reimpostaIscrizione();
+    if (!esito.ok) return;
+    const blocco = document.getElementById("sub-blocco");
+    const area = document.getElementById("subOut");
+    blocco.hidden = false;
+    area.value = esito.iscrizione;
+    try { await navigator.clipboard.writeText(esito.iscrizione); } catch { /* resta da copiare a mano */ }
+    document.getElementById("notifiche-nota").textContent =
+      "Iscrizione rigenerata con la chiave attuale. Aggiorna il secret PUSH_SUBSCRIPTION con questo testo.";
+  });
 
   document.getElementById("btn-copia-sub").addEventListener("click", async () => {
     const area = document.getElementById("subOut");

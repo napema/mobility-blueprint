@@ -37,6 +37,24 @@ function b64ToUint8(base64) {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 }
 
+function uint8ToB64url(buf) {
+  const bytes = new Uint8Array(buf);
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// La chiave con cui l'iscrizione è nata è dentro sub.options.
+function chiaveCombacia(sub, chiave) {
+  try {
+    const usata = sub.options && sub.options.applicationServerKey;
+    if (!usata) return false;
+    return uint8ToB64url(usata) === String(chiave).replace(/=+$/, "");
+  } catch {
+    return false;
+  }
+}
+
 // Va chiamata da un gestore di click, mai all'avvio.
 async function attivaNotifiche() {
   if (!supportate()) return { ok: false, motivo: "non-supportate" };
@@ -48,7 +66,15 @@ async function attivaNotifiche() {
   const perm = await Notification.requestPermission();
   if (perm !== "granted") return { ok: false, motivo: "negato" };
 
+  // Una subscription è legata alla chiave con cui è nata. Se la chiave
+  // VAPID è cambiata, riusarla produce un 403 BadJwtToken lato server —
+  // e sembra un problema del telefono, mentre è solo un'iscrizione
+  // vecchia. Qui si controlla e, se non combacia, si rifà.
   let sub = await reg.pushManager.getSubscription();
+  if (sub && !chiaveCombacia(sub, VAPID_PUBLIC_KEY)) {
+    await sub.unsubscribe();
+    sub = null;
+  }
   if (!sub) {
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
@@ -57,7 +83,18 @@ async function attivaNotifiche() {
   }
 
   await sincronizzaStato();
-  return { ok: true, iscrizione: JSON.stringify(sub) };
+  return { ok: true, iscrizione: JSON.stringify(sub), chiave: VAPID_PUBLIC_KEY.slice(0, 12) };
+}
+
+// Forza una nuova iscrizione anche se quella attuale sembra valida:
+// serve quando si cambia coppia di chiavi o si vuole rigenerare il
+// secret PUSH_SUBSCRIPTION.
+async function reimpostaIscrizione() {
+  if (!supportate()) return { ok: false, motivo: "non-supportate" };
+  const reg = await navigator.serviceWorker.ready;
+  const vecchia = await reg.pushManager.getSubscription();
+  if (vecchia) await vecchia.unsubscribe();
+  return attivaNotifiche();
 }
 
 // Il service worker non può leggere localStorage: qui gli lasciamo in
@@ -82,4 +119,7 @@ async function provaNotifica() {
   return true;
 }
 
-export { supportate, statoPermesso, installata, attivaNotifiche, provaNotifica, sincronizzaStato, VAPID_PUBLIC_KEY };
+export {
+  supportate, statoPermesso, installata, attivaNotifiche, reimpostaIscrizione,
+  provaNotifica, sincronizzaStato, VAPID_PUBLIC_KEY,
+};
