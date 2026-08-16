@@ -133,16 +133,62 @@ const giornoRoma = new Date().toLocaleString("en-US", { timeZone: "Europe/Rome",
 const INDICE_GIORNO = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
 const giornoIdx = INDICE_GIORNO[giornoRoma];
 
-// Il cron gira ogni 15': una notifica è "dovuta" se il suo orario cade
-// nella finestra appena trascorsa. Mezz'ora di tolleranza sarebbe troppa
-// (doppioni), meno di 15' rischierebbe di saltarla se il cron slitta.
-const FINESTRA = 15;
-function dovuta(hhmm) {
+// PERCHÉ NON UNA FINESTRA DI 15 MINUTI.
+// Il cron dice */15, ma GitHub esegue gli scheduled workflow quando può:
+// misurato su questo repo, gli intervalli reali stanno fra 22 e 46
+// minuti. Una finestra di 15' è più stretta dell'intervallo effettivo,
+// quindi la maggior parte degli orari cade in un buco fra due run e non
+// scatta mai.
+//
+// Regola giusta: "è passata l'ora E oggi non l'ho ancora mandata".
+// Non serve che il run cada in un istante preciso — basta che avvenga.
+// Il "già mandata" sta in un file nel repo dei dati, perché fra un run
+// e l'altro non sopravvive niente.
+const RITARDO_MAX_MIN = 180; // oltre 3 ore è tardi: meglio tacere che svegliarti
+
+function orarioPassato(hhmm) {
   if (!hhmm) return false;
   const [h, m] = String(hhmm).split(":").map(Number);
   if (Number.isNaN(h) || Number.isNaN(m)) return false;
-  const diff = minutiOra - (h * 60 + m);
-  return diff >= 0 && diff < FINESTRA;
+  const ritardo = minutiOra - (h * 60 + m);
+  return ritardo >= 0 && ritardo <= RITARDO_MAX_MIN;
+}
+
+const URL_STATO = DATI_REPO
+  ? `https://api.github.com/repos/${DATI_REPO}/contents/notifiche-stato.json`
+  : null;
+const intestazioni = () => ({
+  Authorization: `Bearer ${DATI_TOKEN}`,
+  Accept: "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28",
+});
+
+async function leggiStatoInvii() {
+  if (!URL_STATO || !DATI_TOKEN) return { dati: {}, sha: null };
+  try {
+    const res = await fetch(URL_STATO, { headers: intestazioni(), cache: "no-store" });
+    if (res.status === 404) return { dati: {}, sha: null };
+    if (!res.ok) return { dati: {}, sha: null };
+    const j = await res.json();
+    return { dati: JSON.parse(Buffer.from(j.content, "base64").toString("utf8")), sha: j.sha };
+  } catch {
+    return { dati: {}, sha: null };
+  }
+}
+
+async function segnaInviata(stato, tag, oggi) {
+  if (!URL_STATO || !DATI_TOKEN) return;
+  const nuovo = { ...stato.dati, [tag]: oggi };
+  const corpo = {
+    message: `notifica ${tag} ${oggi}`,
+    content: Buffer.from(JSON.stringify(nuovo, null, 2)).toString("base64"),
+  };
+  if (stato.sha) corpo.sha = stato.sha;
+  try {
+    await fetch(URL_STATO, { method: "PUT", headers: intestazioni(), body: JSON.stringify(corpo) });
+  } catch (e) {
+    avviso(`Inviata ma non registrata (${e.message}): potrebbe ripartire al prossimo run.`);
+  }
 }
 
 const cfg = await leggiImpostazioni();
@@ -154,16 +200,26 @@ let msg = null;
 // fonte e non si disattiva. Quindi il titolo NON ripete il nome né
 // annuncia la categoria — porta l'informazione vera, perché è la riga
 // più visibile delle tre.
-if (dovuta(cfg.principale)) {
-  msg = { title: "Hai corso oggi?", body: "Dimmelo e ti apro la sessione giusta.", tag: "principale", url: "./index.html" };
-} else if (cfg.attivaRecupero && dovuta(cfg.recupero)) {
+const oggiRoma = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Rome" }); // AAAA-MM-GG
+const stato = await leggiStatoInvii();
+const giaInviata = (tag) => stato.dati[tag] === oggiRoma;
+
+const candidati = [
+  { tag: "principale", attiva: true, ora: cfg.principale,
+    title: "Hai corso oggi?", body: "Dimmelo e ti apro la sessione giusta." },
   // Il recupero propone la dose minima, non la sessione intera: a
   // quell'ora proporre 20 minuti significa farla ignorare.
-  msg = { title: "Bastano due minuti", body: "Collo più un allungamento, e la giornata è salva.", tag: "recupero", url: "./index.html" };
-} else if (cfg.attivaPalestra && giornoIdx === cfg.giornoPalestra && dovuta(cfg.palestra)) {
-  msg = { title: "Oggi è il giorno di palestra", body: "Loaded mobility: carichi, non varietà.", tag: "palestra", url: "./index.html" };
-} else if (cfg.attivaSettimanale && giornoIdx === 6 && dovuta(cfg.settimanale)) {
-  msg = { title: "Com'è andata la settimana", body: "Guarda quali gruppi sono rimasti sotto soglia.", tag: "settimanale", url: "./index.html" };
+  { tag: "recupero", attiva: cfg.attivaRecupero, ora: cfg.recupero,
+    title: "Bastano due minuti", body: "Collo più un allungamento, e la giornata è salva." },
+  { tag: "palestra", attiva: cfg.attivaPalestra && giornoIdx === cfg.giornoPalestra, ora: cfg.palestra,
+    title: "Oggi è il giorno di palestra", body: "Loaded mobility: carichi, non varietà." },
+  { tag: "settimanale", attiva: cfg.attivaSettimanale && giornoIdx === 6, ora: cfg.settimanale,
+    title: "Com'è andata la settimana", body: "Guarda quali gruppi sono rimasti sotto soglia." },
+];
+
+const scelto = candidati.find((c) => c.attiva && orarioPassato(c.ora) && !giaInviata(c.tag));
+if (scelto) {
+  msg = { title: scelto.title, body: scelto.body, tag: scelto.tag, url: "./index.html" };
 }
 
 if (!msg && FORZA === "1") {
@@ -171,13 +227,20 @@ if (!msg && FORZA === "1") {
 }
 
 if (!msg) {
-  console.log(`::notice::Nessuna notifica dovuta alle ${oraRoma}. Tutto a posto: era solo fuori orario. Per provare subito, rilancia con forza=1.`);
+  const stati = candidati
+    .filter((c) => c.attiva)
+    .map((c) => `${c.tag} ${c.ora}${giaInviata(c.tag) ? " già inviata" : orarioPassato(c.ora) ? " ?" : " non ancora"}`)
+    .join(" · ");
+  console.log(`::notice::Alle ${oraRoma} non c'è nulla da mandare. Stato: ${stati}`);
   process.exit(0);
 }
 
 try {
   await webpush.sendNotification(sub, JSON.stringify(msg));
   console.log(`::notice::Inviata: ${msg.tag} — "${msg.title}"`);
+  // Registrata subito: è quello che impedisce di rimandarla a ogni run
+  // successivo, visto che l'orario resta "passato" per ore.
+  if (msg.tag !== "prova") await segnaInviata(stato, msg.tag, oggiRoma);
 } catch (e) {
   const codice = e.statusCode;
   let spiegazione = e.body || e.message;
