@@ -10,6 +10,7 @@
 // serve toccare il workflow.
 
 import webpush from "web-push";
+import crypto from "node:crypto";
 
 const {
   VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, PUSH_SUBSCRIPTION,
@@ -41,6 +42,26 @@ console.log("Secret presenti:", [
 if (mancanti.length) {
   errore(`Secret mancanti: ${mancanti.join(", ")} — senza questi non parte nessuna notifica. Istruzioni in ATTIVA-NOTIFICHE.md.`);
   process.exit(1);
+}
+
+// La pubblica si può RICAVARE dalla privata: se non coincide con quella
+// configurata, le due chiavi vengono da generazioni diverse. È l'unico
+// modo di distinguere "chiavi sbagliate" da "iscrizione vecchia", che
+// dal 403 sembrano lo stesso problema.
+try {
+  const ecdh = crypto.createECDH("prime256v1");
+  ecdh.setPrivateKey(Buffer.from(VAPID_PRIVATE_KEY, "base64url"));
+  const derivata = ecdh.getPublicKey().toString("base64url");
+  if (derivata !== VAPID_PUBLIC_KEY.replace(/=+$/, "")) {
+    errore(
+      "VAPID_PRIVATE_KEY non corrisponde a VAPID_PUBLIC_KEY: vengono da due generazioni diverse. " +
+      "Usa le due righe dello STESSO lancio, e la pubblica dev'essere identica a config.js → vapidPublic."
+    );
+    process.exit(1);
+  }
+  console.log("Coppia VAPID coerente: la pubblica deriva dalla privata.");
+} catch (e) {
+  avviso(`Non ho potuto verificare la coppia VAPID (${e.message}): proseguo comunque.`);
 }
 
 webpush.setVapidDetails(VAPID_SUBJECT || "mailto:napema03@icloud.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);

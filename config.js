@@ -30,5 +30,5 @@ window.APP_CFG = {
   // Chiave PUBBLICA VAPID delle notifiche. È pubblica per definizione:
   // sta nel client ed è giusto così. Se rigeneri la coppia, cambia
   // questa e il secret VAPID_PRIVATE_KEY, e null'altro.
-  vapidPublic: "BIPyS-lZBztnxCCKGRqaupmoqvFJrJ7AeYCF9U0Y6ccFjvCYwbmivED_8eYVuqAlq4W3h6QrnXifyqAxs_bubpU",
+  vapidPublic: "BL7qckFRCo2mPKVt33mTw4N2HBA7SnO4aZjAeRzrVywx2cPgsKMPhMU49Ebg7pr8P5oLOEGCLUNI6zvNJ10KumE",
 };
