@@ -206,15 +206,15 @@ const giaInviata = (tag) => stato.dati[tag] === oggiRoma;
 
 const candidati = [
   { tag: "principale", attiva: true, ora: cfg.principale,
-    title: "Hai corso oggi?", body: "Dimmelo e ti apro la sessione giusta." },
+    title: "🏃 Hai corso oggi?", body: "Dimmelo e ti apro la sessione giusta." },
   // Il recupero propone la dose minima, non la sessione intera: a
   // quell'ora proporre 20 minuti significa farla ignorare.
   { tag: "recupero", attiva: cfg.attivaRecupero, ora: cfg.recupero,
-    title: "Bastano due minuti", body: "Collo più un allungamento, e la giornata è salva." },
+    title: "⏱️ Bastano due minuti", body: "Collo più un allungamento, e la giornata è salva." },
   { tag: "palestra", attiva: cfg.attivaPalestra && giornoIdx === cfg.giornoPalestra, ora: cfg.palestra,
-    title: "Oggi è il giorno di palestra", body: "Loaded mobility: carichi, non varietà." },
+    title: "🏋️ Oggi è il giorno di palestra", body: "Loaded mobility: carichi, non varietà." },
   { tag: "settimanale", attiva: cfg.attivaSettimanale && giornoIdx === 6, ora: cfg.settimanale,
-    title: "Com'è andata la settimana", body: "Guarda quali gruppi sono rimasti sotto soglia." },
+    title: "📊 Com'è andata la settimana", body: "Guarda quali gruppi sono rimasti sotto soglia." },
 ];
 
 const scelto = candidati.find((c) => c.attiva && orarioPassato(c.ora) && !giaInviata(c.tag));
@@ -223,7 +223,7 @@ if (scelto) {
 }
 
 if (!msg && FORZA === "1") {
-  msg = { title: "Le notifiche funzionano", body: "Questo è l'aspetto che avranno.", tag: "prova", url: "./index.html" };
+  msg = { title: "✅ Le notifiche funzionano", body: "Questo è l'aspetto che avranno.", tag: "prova", url: "./index.html" };
 }
 
 if (!msg) {

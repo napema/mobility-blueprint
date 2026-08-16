@@ -105,6 +105,27 @@ function espandi(ex, gruppo, stretto, settimana) {
   // altrimenti la sessione sembra durare un terzo di quanto dura.
   const durata = (ex.durataSec || 30) * (ex.serie || 1);
 
+  // Esercizi a ripetizioni cronometrate (spinta / rilascio / spinta…):
+  // servono passi separati, altrimenti è un blocco unico e non sai
+  // quando spingere e quando mollare.
+  if (ex.ripetuto) {
+    const out = [];
+    for (let i = 1; i <= ex.ripetuto.volte; i++) {
+      out.push({
+        ...base, lato: ex.lato || null, durataSec: ex.ripetuto.lavoroSec,
+        badgeExtra: `spinta ${i} di ${ex.ripetuto.volte}`, faseRipetuta: "lavoro",
+      });
+      if (i < ex.ripetuto.volte) {
+        out.push({
+          ...base, lato: ex.lato || null, durataSec: ex.ripetuto.pausaSec,
+          badgeExtra: "rilascia", faseRipetuta: "pausa",
+          passi: ["Molla completamente.", "Senti il collo scendere di qualche grado.", "Non ricominciare prima del segnale."],
+        });
+      }
+    }
+    return out;
+  }
+
   if (ex.lato) {
     const out = [];
     for (let v = 0; v < (ex.volte || 1); v++) out.push({ ...base, lato: ex.lato, durataSec: durata });
@@ -388,7 +409,12 @@ function aggiornaStep(container, step, totale) {
   schermo.classList.toggle("is-lavoro", !inPrep);
 
   document.getElementById("sessione-progress").textContent = `${d.numero} di ${totale}`;
-  container.querySelector("#sess-stato").textContent = inPrep ? "Preparati" : "Tieni la posizione";
+  const statoTesto = inPrep
+    ? "Preparati"
+    : d.faseRipetuta === "pausa" ? "Rilascia"
+    : d.faseRipetuta === "lavoro" ? "Spingi"
+    : "Tieni la posizione";
+  container.querySelector("#sess-stato").textContent = statoTesto;
   // Il lato entra nel titolo: leggerlo solo in una pillola non bastava.
   container.querySelector("#sess-titolo").textContent = d.lato ? `${d.nome} — ${nomeLato(d.lato)}` : d.nome;
   container.querySelector("#btn-avanti").textContent = inPrep ? "Sono pronto" : "Avanti";
@@ -399,7 +425,10 @@ function aggiornaStep(container, step, totale) {
 
   const chip = [];
   if (d.fonte) chip.push(`<span class="pillola is-verde">${d.fonte}</span>`);
-  chip.push(`<span class="pillola ${d.tag === "M" ? "is-verde" : "is-blu"}">${d.tag === "M" ? "Attivo" : "Passivo"}</span>`);
+  const etichettaTag = { M: "Attivo", S: "Passivo", R: "Rilascio" }[d.tag] || "";
+  const classeTag = { M: "is-verde", S: "is-blu", R: "is-arancio" }[d.tag] || "";
+  if (etichettaTag) chip.push(`<span class="pillola ${classeTag}">${etichettaTag}</span>`);
+  if (d.badgeExtra) chip.push(`<span class="pillola is-arancio">${d.badgeExtra}</span>`);
   if (d.lato) chip.push(`<span class="pillola is-blu">Lato ${nomeLato(d.lato).toLowerCase()}${d.extra ? " · extra" : ""}</span>`);
   if (d.carico) chip.push(`<span class="pillola is-arancio">${d.carico} kg</span>`);
   if (d.ripetizioni) chip.push(`<span class="pillola is-arancio">${d.ripetizioni}</span>`);

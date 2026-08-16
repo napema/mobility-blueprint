@@ -42,11 +42,22 @@ const G1 = {
     { id: "g1-elevatore", video: "ZsFdEpVKu_c", nome: "Elevatore della scapola destro", tag: "S", lato: "dx",
       serve: "Una sedia", muscoli: ["Elevatore della scapola"],
       passi: ["Spalla destra bloccata in basso.", "Naso verso l'ascella sinistra: rotazione opposta allo scaleno."] },
-    // La mano resiste dal lato OPPOSTO alla direzione in cui il collo spinge.
-    { id: "g1-isometria", video: "brkZW0fdc5k", nome: "Isometria del collo (rinforzo sinistro)", tag: "M", lato: "sx",
-      serve: "Nessun attrezzo", muscoli: ["Flessori laterali sinistri"], ripetizioni: "5 × 5\"",
-      nota: "La mano sta dal lato opposto alla spinta: è la resistenza, non la direzione del lavoro.",
-      passi: ["Mano DESTRA sulla tempia destra.", "Spingi la testa VERSO SINISTRA contro la mano, che resiste.", "La testa non si muove: lavora il lato sinistro.", "Pressione leggera, 5 secondi."] },
+    // Protocollo del fisioterapista, non da video: spingi con l'orecchio
+    // sinistro verso la spalla sinistra mentre la mano contrasta, 5
+    // secondi, stop, e si riprende. Il ROM del collo scende a ogni
+    // ripetizione — è quello il segnale che sta funzionando.
+    // Niente video di proposito: la descrizione basta, e nessun video
+    // trovato mostrava questa versione.
+    { id: "g1-isometria", video: null, nome: "Isometria del collo — 5 spinte", tag: "M", lato: "sx",
+      serve: "Nessun attrezzo", muscoli: ["Flessori laterali sinistri"],
+      ripetuto: { volte: 5, lavoroSec: 5, pausaSec: 5 },
+      nota: "A ogni ripetizione il collo scende un po' di più: è il segno che il riflesso si sta spegnendo. Pressione leggera, mai forte.",
+      passi: [
+        "Mano SINISTRA aperta contro la tempia sinistra.",
+        "Spingi l'orecchio sinistro VERSO la spalla sinistra, la mano contrasta.",
+        "La testa non si muove: è isometria. Cinque secondi.",
+        "Rilascia del tutto e senti il collo scendere. Poi riparti.",
+      ] },
     { id: "g1-flex-attiva", video: "fF8Hhf6Z9PY", nome: "Flessione laterale attiva sinistra", tag: "M", lato: "sx",
       serve: "Nessun attrezzo", muscoli: ["Flessori laterali sinistri"], ripetizioni: "8 lente",
       passi: ["Senza mani, spalle basse.", "Orecchio verso la spalla sinistra e ritorno.", "Solo i muscoli del collo."] },
@@ -78,7 +89,7 @@ const G2 = {
     { id: "g2-calf-att", video: "paqfvHciOTs", fonte: FONTE_GOWOD, nome: "Calf activation alternata", tag: "M",
       serve: "Nessun attrezzo", muscoli: ["Polpaccio", "Tibiale anteriore"], ripetizioni: "15 lente",
       passi: ["In piedi, peso distribuito.", "Alterna sollevamento su punte e su talloni.", "Controllato, senza rimbalzare."] },
-    { id: "g2-calf-roll", video: "Zr4nzhFQKtA", fonte: FONTE_GOWOD, nome: "Calf roll (foam roller)", tag: "S", perLato: true,
+    { id: "g2-calf-roll", video: "Zr4nzhFQKtA", fonte: FONTE_GOWOD, nome: "Calf roll (foam roller)", tag: "R", perLato: true,
       serve: "Foam roller", muscoli: ["Polpaccio"], durataSec: 60,
       passi: ["Polpaccio sopra il roller, seduto a terra.", "Rotola lento dalla caviglia al ginocchio.", "Fermati sui punti densi e respira."] },
     { id: "g2-ankle-rolls", video: "zHqfCkjDyXA", fonte: FONTE_GOWOD, nome: "Ankle rolls", tag: "M", perLato: true,
@@ -87,6 +98,10 @@ const G2 = {
     { id: "g2-deep-squat", video: "_kTB1ilKMuA", fonte: FONTE_GOWOD, nome: "Active deep squat", tag: "M",
       serve: "Nessun attrezzo", muscoli: ["Caviglie", "Adduttori"], durataSec: 45,
       passi: ["Accosciata piena, talloni a terra.", "Gomiti dentro le ginocchia.", "Spingi le ginocchia in fuori."] },
+    { id: "g2-dog-calf", video: "pA7xyM3S7LI", fonte: FONTE_GOWOD, nome: "Calf stretch nel cane a testa in giù", tag: "M", perLato: true,
+      serve: "Solo il pavimento", muscoli: ["Polpaccio", "Achilleo", "Femorali"], ripetizioni: "8 pedalate per lato",
+      nota: "La pedalata: un tallone scende mentre l'altro ginocchio si piega. Polpacci e femorali insieme, che dopo la corsa è quello che serve.",
+      passi: ["Cane a testa in giù, mani ben piantate.", "Piega un ginocchio e spingi il tallone opposto a terra.", "Alterna lentamente, senza rimbalzare."] },
     { id: "g2-squat-stand", video: "bpdav7vOpDw", fonte: FONTE_GOWOD, nome: "Squat to stand", tag: "M",
       serve: "Nessun attrezzo", muscoli: ["Femorali", "Anche"], ripetizioni: "8 lente",
       passi: ["Mani sotto le punte dei piedi.", "Scendi in accosciata tenendo il petto alto.", "Risali distendendo le gambe senza mollare le mani."] },
@@ -114,7 +129,7 @@ const G3 = {
     { id: "g3-knight-ham", video: "d50TF_8Wvv4", fonte: FONTE_GOWOD, nome: "Standing knight to hamstring", tag: "M", perLato: true,
       serve: "Nessun attrezzo", muscoli: ["Femorali", "Flessori d'anca"], ripetizioni: "8 per lato",
       passi: ["Dall'affondo, sposta il peso indietro.", "Gamba avanti che si distende.", "Alterna avanti e indietro con controllo."] },
-    { id: "g3-ham-roll", video: "jDIytIZhuxE", fonte: FONTE_GOWOD, nome: "Hamstring roll (foam roller)", tag: "S", perLato: true,
+    { id: "g3-ham-roll", video: "jDIytIZhuxE", fonte: FONTE_GOWOD, nome: "Hamstring roll (foam roller)", tag: "R", perLato: true,
       serve: "Foam roller", muscoli: ["Femorali"], durataSec: 60,
       passi: ["Seduto, femorale sopra il roller.", "Rotola dal ginocchio al gluteo.", "Fermati sui punti densi."] },
     { id: "g3-forward-bend", video: "xHazy-ZcsKE", fonte: FONTE_GOWOD, nome: "Standing forward bend", tag: "S",
@@ -146,7 +161,7 @@ const G4 = {
     { id: "g4-hip-axle", video: "ewrqdxJ0BF4", fonte: FONTE_GOWOD, nome: "The hip axle", tag: "M", perLato: true,
       serve: "Solo il pavimento", muscoli: ["Flessori d'anca", "Rotatori"], ripetizioni: "8 per lato",
       passi: ["Segui il movimento del video.", "Lento, senza compensare con la schiena."] },
-    { id: "g4-quad-roll", video: "jLx4kGk9x_M", fonte: FONTE_GOWOD, nome: "Quad roll (foam roller)", tag: "S", perLato: true,
+    { id: "g4-quad-roll", video: "jLx4kGk9x_M", fonte: FONTE_GOWOD, nome: "Quad roll (foam roller)", tag: "R", perLato: true,
       serve: "Foam roller", muscoli: ["Quadricipite", "Retto femorale"], durataSec: 60,
       passi: ["A pancia sotto, quadricipite sopra il roller.", "Rotola dal ginocchio all'anca.", "Fermati sui punti densi."] },
   ],
@@ -176,7 +191,7 @@ const G5 = {
     { id: "g5-frog-rot", video: "iJ8_yq9lmjM", fonte: FONTE_GOWOD, nome: "Frog rotation alternata", tag: "M",
       serve: "Solo il pavimento", muscoli: ["Adduttori", "Rotatori"], ripetizioni: "6 per lato",
       passi: ["Dalla rana, ruota il bacino da un lato.", "Alterna con controllo."] },
-    { id: "g5-add-roll", video: "jT1lvBxzkTw", fonte: FONTE_GOWOD, nome: "Adductor roll (foam roller)", tag: "S", perLato: true,
+    { id: "g5-add-roll", video: "jT1lvBxzkTw", fonte: FONTE_GOWOD, nome: "Adductor roll (foam roller)", tag: "R", perLato: true,
       serve: "Foam roller", muscoli: ["Adduttori"], durataSec: 60,
       passi: ["A pancia sotto, interno coscia sopra il roller.", "Rotola dall'inguine al ginocchio.", "Lento, fermandoti sui punti densi."] },
     { id: "g5-cossack", video: "xXwdKm5uLAM", fonte: FONTE_GOWOD, nome: "Cossack squat", tag: "M", perLato: true,
@@ -196,6 +211,10 @@ const G5 = {
     { id: "g5-v-stretch", video: "siK37i0QDvA", fonte: FONTE_GOWOD, nome: "Standing V stretch", tag: "S",
       serve: "Nessun attrezzo", muscoli: ["Adduttori", "Femorali"],
       passi: ["Piedi molto larghi, gambe tese.", "Scendi in mezzo con la schiena lunga.", "Al 30-40%."] },
+    { id: "g5-v-sit", video: "W2k8DMxK7zI", fonte: FONTE_GOWOD, nome: "V sit (divaricata seduta)", tag: "S",
+      serve: "Solo il pavimento", muscoli: ["Adduttori", "Femorali"], durataSec: 45,
+      nota: "La chiusura della routine post-corsa: interno coscia e femorali insieme, da fermo.",
+      passi: ["Seduto, gambe aperte il più possibile.", "Mani dietro il bacino per spingerlo avanti e raddrizzare la schiena.", "Poi, se ci arrivi, mani avanti a terra.", "Respira lento e resta."] },
   ],
 };
 
@@ -204,14 +223,21 @@ const G6 = {
   id: "G6", nome: "Glutei e bandelletta",
   avviso: "Mai foam-rollare la bandelletta: è tessuto fibroso, sotto massima contrazione si allunga meno dello 0,2%. Si lavora su TFL e gluteo.",
   esercizi: [
-    { id: "g6-glute-roll", video: "vB2SCMJPXp8", fonte: FONTE_GOWOD, nome: "Glute roll (foam roller)", tag: "S", perLato: true, doppioADestra: true,
+    { id: "g6-glute-roll", video: "vB2SCMJPXp8", fonte: FONTE_GOWOD, nome: "Glute roll (foam roller)", tag: "R", perLato: true, doppioADestra: true,
       serve: "Foam roller", muscoli: ["Gluteo", "TFL"], durataSec: 60,
       nota: "Doppio tempo a destra: è il lato della bandelletta. Sul gluteo e sul TFL, MAI sulla banda laterale.",
       passi: ["Seduto sul roller, caviglia sul ginocchio opposto.", "Rotola sul gluteo.", "Fermati sui punti densi e respira."] },
-    { id: "g6-glute-att", video: "0wP-ACtaZmE", fonte: FONTE_GOWOD, nome: "Glute activation", tag: "M", perLato: true, doppioADestra: true,
+    // La Glute Activation di GOWOD usa un elastico che non hai: qui il
+    // video è di Medbridge, stesso movimento a corpo libero.
+    { id: "g6-glute-att", video: "UmmBtOG2N_s", nome: "Abduzione sul fianco", tag: "M", perLato: true, doppioADestra: true,
       serve: "Solo il pavimento", muscoli: ["Medio gluteo"], ripetizioni: "15 sx · 25 dx",
-      nota: "Volume doppio a destra: deficit di forza sul lato che ha già dato problemi.",
-      passi: ["Sul fianco o in quadrupedia, come nel video.", "La gamba sale lenta, senza ruotare il bacino.", "Senti lavorare il gluteo, non la schiena."] },
+      nota: "Volume doppio a destra: deficit di forza sul lato della bandelletta. Niente elastico, solo il peso della gamba.",
+      passi: [
+        "Sul fianco, corpo in linea, testa appoggiata.",
+        "La gamba sopra sale lenta, tenendo la punta in avanti.",
+        "Il bacino NON ruota indietro: è l'errore che sposta il lavoro sul TFL.",
+        "Scendi controllando, senza appoggiare del tutto.",
+      ] },
   ],
 };
 
@@ -226,7 +252,7 @@ const G7 = {
     { id: "g7-quad-att", video: "7X5BPoaGY38", fonte: FONTE_GOWOD, nome: "Active quad stretch", tag: "M", perLato: true,
       serve: "Nessun attrezzo", muscoli: ["Quadricipite"], ripetizioni: "8 per lato",
       passi: ["Senza mani, porta il tallone al gluteo.", "Il bacino resta sotto.", "Controllo in salita e in discesa."] },
-    { id: "g7-quad-roll", video: "jLx4kGk9x_M", fonte: FONTE_GOWOD, nome: "Quad roll (foam roller)", tag: "S", perLato: true,
+    { id: "g7-quad-roll", video: "jLx4kGk9x_M", fonte: FONTE_GOWOD, nome: "Quad roll (foam roller)", tag: "R", perLato: true,
       serve: "Foam roller", muscoli: ["Quadricipite"], durataSec: 60,
       passi: ["A pancia sotto, quadricipite sopra il roller.", "Rotola dal ginocchio all'anca.", "Fermati sui punti densi."] },
   ],
@@ -246,17 +272,17 @@ const G8 = {
     { id: "g8-prayer-lat-att", video: "6RuHrpxrzlY", fonte: FONTE_GOWOD, nome: "Active prayer lat stretch", tag: "M",
       serve: "Una sedia", muscoli: ["Gran dorsale"], ripetizioni: "8 lente",
       passi: ["Come il prayer lat, ma spingendo attivamente.", "Entra e esci dalla posizione con controllo."] },
-    { id: "g8-lat-roll", video: "dxH7xejXRoU", fonte: FONTE_GOWOD, nome: "Lat roll (foam roller)", tag: "S", perLato: true,
+    { id: "g8-lat-roll", video: "dxH7xejXRoU", fonte: FONTE_GOWOD, nome: "Lat roll (foam roller)", tag: "R", perLato: true,
       serve: "Foam roller", muscoli: ["Gran dorsale"], durataSec: 60,
       passi: ["Sul fianco, roller sotto l'ascella.", "Rotola lungo il fianco.", "Braccio disteso sopra la testa."] },
     { id: "g8-back-roll-oh", video: "pJ-vGyiymvw", fonte: FONTE_GOWOD, nome: "Back roll in overhead (foam roller)", tag: "M",
       serve: "Foam roller", muscoli: ["Toracica"], ripetizioni: "8 lente",
       nota: "È l'estensione toracica sopra il roller: parte da lì, non dalla lombare.",
       passi: ["Roller trasversale sotto le scapole.", "Braccia sopra la testa.", "Estendi indietro lentamente."] },
-    { id: "g8-lower-back-roll", video: "rtQL5rF1fyU", fonte: FONTE_GOWOD, nome: "Lower back roll (foam roller)", tag: "S",
+    { id: "g8-lower-back-roll", video: "rtQL5rF1fyU", fonte: FONTE_GOWOD, nome: "Lower back roll (foam roller)", tag: "R",
       serve: "Foam roller", muscoli: ["Erettori lombari"], durataSec: 60,
       passi: ["Roller sotto la zona lombo-sacrale.", "Movimenti piccoli e lenti.", "Non rotolare sulla lombare in estensione."] },
-    { id: "g8-pec-smash", video: "49EQ5UQJ4yM", fonte: FONTE_GOWOD, nome: "Pec smash (pallina o roller)", tag: "S", perLato: true,
+    { id: "g8-pec-smash", video: "49EQ5UQJ4yM", fonte: FONTE_GOWOD, nome: "Pec smash (pallina o roller)", tag: "R", perLato: true,
       serve: "Pallina o foam roller", muscoli: ["Pettorale"], durataSec: 60,
       passi: ["Pallina tra pettorale e muro (o pavimento).", "Piccoli movimenti sul punto denso.", "Muovi il braccio mentre premi."] },
     { id: "g8-pec", video: "sHb_7bk6N40", fonte: FONTE_GOWOD, nome: "Pec stretch a terra", tag: "S", perLato: true,
@@ -275,6 +301,13 @@ const G8 = {
     { id: "g8-overhead-att", video: "RSJfJ793m0I", fonte: FONTE_GOWOD, nome: "Overhead activation", tag: "M",
       serve: "Nessun attrezzo", muscoli: ["Spalle", "Toracica"], ripetizioni: "8 × 3\"",
       passi: ["Braccia sopra la testa, attive.", "Lombare che non si inarca.", "Tieni 3 secondi in cima."] },
+    { id: "g8-cobra", video: "9Y8bRpzNc40", fonte: FONTE_GOWOD, nome: "Downward dog to cobra", tag: "M",
+      serve: "Solo il pavimento", muscoli: ["Toracica", "Addominali"], ripetizioni: "6 lente",
+      nota: "Apre l'anteriore dopo la corsa e riporta il respiro in addominale.",
+      passi: ["Dal cane a testa in giù, scendi in cobra.", "Petto avanti, spalle lontane dalle orecchie.", "Glutei leggermente contratti: proteggono la lombare.", "Torna indietro e ripeti."] },
+    { id: "g8-prayer", video: "7sCNw5OK3mw", fonte: FONTE_GOWOD, nome: "Prayer stretch (posizione del bambino)", tag: "S",
+      serve: "Solo il pavimento", muscoli: ["Gran dorsale", "Lombare"], durataSec: 45,
+      passi: ["Seduto sui talloni, ginocchia larghe.", "Braccia lunghe avanti, fronte a terra.", "Piccoli spostamenti del bacino a destra e sinistra."] },
     { id: "g8-cat-cow", video: "_tXe5N6-MgM", fonte: FONTE_GOWOD, nome: "Cat & cow", tag: "M",
       serve: "Solo il pavimento", muscoli: ["Colonna"], ripetizioni: "10 lente",
       passi: ["Quadrupedia.", "Alterna schiena inarcata e arrotondata.", "Segui il respiro."] },
@@ -356,14 +389,30 @@ const GRUPPI = { G1, G2, G3, G4, G5, G6, G7, G8 };
 // ============ 1 · POST-CORSA — fissa, ~12 min ============
 // Metà stretching, metà rinforzo: sui due infortuni pregressi l'evidenza
 // porta al rinforzo, non all'allungamento.
+// La sequenza segue la logica della routine deep-stretch post-run:
+// si apre dal basso e in carico (squat, forward fold, cane a testa in
+// giù) finché il corpo è caldo, si passa a terra man mano che si
+// raffredda, e si chiude seduti. Il foam roller sta in mezzo, quando i
+// tessuti sono ancora caldi ed è il momento in cui rende di più.
+//
+// Con il rinforzo dentro, non solo allungamento: sui due infortuni
+// pregressi (bandelletta e shin splints) l'evidenza porta lì.
 const POST_CORSA = {
-  id: "POST_CORSA", nome: "Post-corsa", durataStimataMin: 12,
+  id: "POST_CORSA", nome: "Post-corsa", durataStimataMin: 25,
   nota: "Fissa, non progredisce. Nei giorni con corsa sostituisce il quotidiano: non si sommano.",
   blocchi: [
-    { nome: "Polpaccio e piede", esercizi: ["g2-calf-wall", "g2-achilleo", "g2-calf-ecc", "g2-calf-roll"] },
-    { nome: "Anca (bandelletta destra)", esercizi: ["g6-glute-att", "g6-glute-roll"] },
-    { nome: "Catena posteriore e anteriore", esercizi: ["g4-knight", "g3-ham-kneel", "g5-piriforme"] },
-    { nome: "Collo, ridotto", esercizi: ["g1-trap", "g1-isometria"] },
+    // 1. In piedi e in carico, finché sei caldo
+    { nome: "Apertura in carico", esercizi: ["g2-deep-squat", "g3-forward-bend", "g2-dog-calf"] },
+    // 2. Il rinforzo va prima che il corpo si raffreddi
+    { nome: "Rinforzo (bandelletta e caviglia)", esercizi: ["g6-glute-att", "g2-calf-ecc"] },
+    // 3. Foam roller a muscoli caldi
+    { nome: "Foam roller", esercizi: ["g2-calf-roll", "g3-ham-roll", "g7-quad-roll", "g6-glute-roll"] },
+    // 4. A terra: anteriore, poi posteriore
+    { nome: "Anteriore", esercizi: ["g8-cobra", "g7-quad", "g4-knight"] },
+    { nome: "Posteriore e anca", esercizi: ["g3-ham-kneel", "g5-frog", "g5-piriforme"] },
+    // 5. Chiusura seduta e collo
+    { nome: "Chiusura", esercizi: ["g5-v-sit", "g8-prayer"] },
+    { nome: "Collo", esercizi: ["g1-trap", "g1-isometria"] },
   ],
 };
 
