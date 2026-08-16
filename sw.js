@@ -1,7 +1,7 @@
 // sw.js — cache dell'app shell per l'uso offline (la sessione serale non può
 // dipendere dalla rete). Cache-first con fallback di rete, versionata a mano.
 
-const CACHE_NAME = "mobilita-shell-v19";
+const CACHE_NAME = "mobilita-shell-v20";
 
 const APP_SHELL = [
   "./",
@@ -90,8 +90,8 @@ self.addEventListener("push", (event) => {
     // sopprime: sopprimere del tutto può far comparire la notifica
     // generica di sistema "questo sito è stato aggiornato".
     if (fatta && (dati.tag === "recupero" || dati.tag === "principale")) {
-      return self.registration.showNotification("Fatto per oggi", {
-        body: "Sessione completata. Ci vediamo domani.",
+      return self.registration.showNotification("Oggi è già fatta", {
+        body: "Niente da fare. Ci vediamo domani.",
         tag: dati.tag,
         icon: "icons/icon-192.png",
         badge: "icons/icon-192.png",

@@ -150,20 +150,24 @@ console.log(`Ora di Roma: ${oraRoma} (${giornoRoma}). Orari configurati:`, JSON.
 
 let msg = null;
 
+// iOS aggiunge da sé la riga "from <nome app>": è attribuzione della
+// fonte e non si disattiva. Quindi il titolo NON ripete il nome né
+// annuncia la categoria — porta l'informazione vera, perché è la riga
+// più visibile delle tre.
 if (dovuta(cfg.principale)) {
-  msg = { title: "Sessione di stasera", body: "Hai corso oggi?", tag: "principale", url: "./index.html" };
+  msg = { title: "Hai corso oggi?", body: "Dimmelo e ti apro la sessione giusta.", tag: "principale", url: "./index.html" };
 } else if (cfg.attivaRecupero && dovuta(cfg.recupero)) {
   // Il recupero propone la dose minima, non la sessione intera: a
   // quell'ora proporre 20 minuti significa farla ignorare.
-  msg = { title: "Due minuti", body: "Collo + un allungamento. Non serve altro.", tag: "recupero", url: "./index.html" };
+  msg = { title: "Bastano due minuti", body: "Collo più un allungamento, e la giornata è salva.", tag: "recupero", url: "./index.html" };
 } else if (cfg.attivaPalestra && giornoIdx === cfg.giornoPalestra && dovuta(cfg.palestra)) {
-  msg = { title: "Loaded mobility", body: "Oggi è il giorno di palestra.", tag: "palestra", url: "./index.html" };
+  msg = { title: "Oggi è il giorno di palestra", body: "Loaded mobility: carichi, non varietà.", tag: "palestra", url: "./index.html" };
 } else if (cfg.attivaSettimanale && giornoIdx === 6 && dovuta(cfg.settimanale)) {
-  msg = { title: "Riepilogo settimana", body: "Guarda dove sei rimasto sotto soglia.", tag: "settimanale", url: "./index.html" };
+  msg = { title: "Com'è andata la settimana", body: "Guarda quali gruppi sono rimasti sotto soglia.", tag: "settimanale", url: "./index.html" };
 }
 
 if (!msg && FORZA === "1") {
-  msg = { title: "Prova", body: "Il canale delle notifiche funziona.", tag: "prova", url: "./index.html" };
+  msg = { title: "Le notifiche funzionano", body: "Questo è l'aspetto che avranno.", tag: "prova", url: "./index.html" };
 }
 
 if (!msg) {
