@@ -17,11 +17,10 @@
 
 import { getState, salvaStatoSW } from "./storage.js";
 
-// La chiave pubblica sta in config.js: se la rigeneri, cambi un file
-// solo. Resta il valore storico come ripiego per non rompere nulla.
-const VAPID_PUBLIC_KEY =
-  (window.APP_CFG && window.APP_CFG.vapidPublic) ||
-  "BEF9vuHSz44QFNV_jFvlgimpwx0sKdpiW7hStEXAWoUx8LtQo78VLjS76_D-dJGKOfVrkMa-kbuyzrxwG77FXuo";
+// La chiave pubblica sta solo in config.js. Nessun valore di scorta:
+// una chiave diversa da quella con cui firma il server produce un
+// fallimento silenzioso, che è il modo peggiore di rompersi.
+const VAPID_PUBLIC_KEY = (window.APP_CFG && window.APP_CFG.vapidPublic) || "";
 
 const supportate = () =>
   "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
@@ -41,6 +40,7 @@ function b64ToUint8(base64) {
 // Va chiamata da un gestore di click, mai all'avvio.
 async function attivaNotifiche() {
   if (!supportate()) return { ok: false, motivo: "non-supportate" };
+  if (!VAPID_PUBLIC_KEY) return { ok: false, motivo: "chiave-mancante" };
 
   const reg = await navigator.serviceWorker.register("./sw.js");
   await navigator.serviceWorker.ready;

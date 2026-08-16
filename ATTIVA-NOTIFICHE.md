@@ -45,7 +45,16 @@ Repo **mobility-blueprint** → **Settings** → **Secrets and variables** →
 | `VAPID_PUBLIC_KEY` | la riga **PUBBLICA** del passo 1 |
 | `VAPID_PRIVATE_KEY` | la riga **PRIVATA** del passo 1 |
 | `VAPID_SUBJECT` | `mailto:napema03@icloud.com` |
-| `DATI_TOKEN` | lo stesso token che è già in `config.js` (serve a leggere i tuoi orari) |
+| `DATI_TOKEN` | il token GitHub **intero**, quello che inizia con `github_pat_` |
+
+> **`DATI_TOKEN` è lo stesso token del sync**, ma nella forma originale:
+> in `config.js` è in base64 spezzato in tre, qui va intero. Per
+> riaverlo, in console: `atob(APP_CFG.t1 + APP_CFG.t2 + APP_CFG.t3)`
+
+> `VAPID_PUBLIC_KEY` deve essere **identica** al campo `vapidPublic` di
+> `config.js`. Non c'è più un valore di ripiego: se il secret manca, il
+> workflow fallisce subito invece di firmare con una chiave sbagliata e
+> non far arrivare niente senza dirlo.
 
 > Il `PUSH_SUBSCRIPTION` **non ce l'hai ancora**: arriva al passo 4.
 
