@@ -17,7 +17,10 @@
 
 import { getState, salvaStatoSW } from "./storage.js";
 
+// La chiave pubblica sta in config.js: se la rigeneri, cambi un file
+// solo. Resta il valore storico come ripiego per non rompere nulla.
 const VAPID_PUBLIC_KEY =
+  (window.APP_CFG && window.APP_CFG.vapidPublic) ||
   "BEF9vuHSz44QFNV_jFvlgimpwx0sKdpiW7hStEXAWoUx8LtQo78VLjS76_D-dJGKOfVrkMa-kbuyzrxwG77FXuo";
 
 const supportate = () =>

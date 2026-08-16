@@ -27,7 +27,8 @@ jobs:
       - run: node scripts/push.mjs
         env:
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
-          VAPID_PUBLIC_KEY: BEF9vuHSz44QFNV_jFvlgimpwx0sKdpiW7hStEXAWoUx8LtQo78VLjS76_D-dJGKOfVrkMa-kbuyzrxwG77FXuo
+          # Deve essere identica a config.js → vapidPublic.
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY || 'BEF9vuHSz44QFNV_jFvlgimpwx0sKdpiW7hStEXAWoUx8LtQo78VLjS76_D-dJGKOfVrkMa-kbuyzrxwG77FXuo' }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
           # Servono a leggere gli orari scelti nell'app. Se mancano, si
