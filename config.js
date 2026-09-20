@@ -1,31 +1,28 @@
-// config.js — configurazione del sync. NON è codice: sono i tuoi dati.
+// QUESTO FILE NON CONTIENE PIU IL TOKEN, E NON DEVE TORNARCI.
 //
-// Il token sta qui in chiaro-ish (base64 spezzato in tre): non è
-// sicurezza, è solo antiscraping. Chi apre il sorgente lo trova.
-// È accettabile SOLO perché è un token fine-grained con permessi
-// minimi (Contents: read/write) su un unico repo privato di dati
-// personali, e si revoca in un clic. Se un giorno i dati diventano
-// sensibili o gli utenti più di uno, serve un backend vero.
+// Lo serviva GitHub Pages da un repo pubblico: chiunque aprisse
+// napema.github.io/mobility-blueprint/config.js si portava via una chiave di lettura
+// e scrittura sul repo privato dei dati. Il base64 spezzato in tre non
+// nascondeva niente a nessuno - tranne che al secret scanner di GitHub,
+// che un token intero lo avrebbe intercettato e revocato da solo. Cioe:
+// serviva a spegnere l'unico allarme che c'era.
 //
-// COME RIEMPIRLO — istruzioni complete in SETUP-sync.md.
-// In breve: crea un repo privato per i dati, genera un token
-// fine-grained, poi in una console del browser esegui:
+// La regola che ne resta: in un sito statico non esiste un nascondiglio.
+// Tutto cio che il browser scarica senza autenticarsi lo scarica chiunque.
 //
-//   const t = "ghp_iltuotoken";
-//   const b = btoa(t);
-//   const n = Math.ceil(b.length / 3);
-//   console.log(JSON.stringify([b.slice(0,n), b.slice(n,2*n), b.slice(2*n)]));
-//
-// e incolla i tre pezzi in t1, t2, t3 qui sotto.
+// Questa app e in pensione: i dati vivono in ATLAS, che il token lo chiede
+// al dispositivo invece di pubblicarlo (vedi core/credenziali.js la'). Qui
+// resta tutto leggibile in locale, ma il sync non parte piu. Il repo dei
+// dati non e stato toccato: mobilita-dati e intatto.
 
 window.APP_CFG = {
   owner: "napema",
   repo: "mobilita-dati",     // il repo PRIVATO dei dati, da creare
   path: "dati.json",
   branch: "main",
-  t1: "Z2l0aHViX3BhdF8xMUFYQkRXN1kwSkwzRU4wRTBXT2",
-  t2: "9hX0NsenZFWGFuSE45V3IyNU02N01HTHh2ZFZXcmx6",
-  t3: "ZTk4dm1Ib21Fd1R0UkhIUklNR05DSVNIdXlqU0s1",
+  t1: "",
+  t2: "",
+  t3: "",
 
   // Chiave PUBBLICA VAPID delle notifiche. È pubblica per definizione:
   // sta nel client ed è giusto così. Se rigeneri la coppia, cambia
